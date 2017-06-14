@@ -2,10 +2,14 @@ package com.apackage.api;
 
 import android.content.Context;
 import android.os.AsyncTask;
+import android.widget.Toast;
 
+import com.apackage.db.DataBase;
 import com.apackage.insense.R;
+import com.apackage.model.User;
 
 import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.InputStream;
@@ -25,10 +29,12 @@ public class Connection extends AsyncTask<String,Void,String> {
 
     private ConnectionListener connectionListener;
     private Context context;
+    private final DataBase db;
 
     public Connection(ConnectionListener connectionListener, Context context){
         this.connectionListener = connectionListener;
         this.context = context;
+        this.db = new DataBase(context);
     }
 
     @Override
@@ -36,11 +42,21 @@ public class Connection extends AsyncTask<String,Void,String> {
         switch(query[0])
         {
             case "login":
-                return getToken(query[1],query[2]);
+                JSONObject response = getAccessToken(query[1],query[2]);
+                try {
+                    User user = new User(response.getInt("id"), response.getString("email"), response.getString("access_token"), response.getString("name"), response.getString("refresh_token"));
+                    db.saveOrUpdate(user, true);
+                    return user.getLogin();
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                    return null;
+                }
             case "settings":
                 //return getSettings(getToken(),query[0]);
                 return "";
             case "devices":
+                return "";
+            case "refresh_token":
                 return "";
         }
         return "";
@@ -53,9 +69,12 @@ public class Connection extends AsyncTask<String,Void,String> {
             connectionListener.onConnectionError();
         }else{
             try {
-                JSONObject jsonObject = new JSONObject(string);
-                JSONArray jsonArray = jsonObject.getJSONArray("statuses");
-                connectionListener.onConnectionSuccess(jsonArray);
+
+
+                //If receiving a list use the commented code below
+                //JSONObject jsonObject = new JSONObject(string);
+                //JSONArray jsonArray = jsonObject.getJSONArray("statuses");
+                //connectionListener.onConnectionSuccess(jsonArray);
             }
             catch (Exception e){
                 connectionListener.onConnectionError();
@@ -98,7 +117,7 @@ public class Connection extends AsyncTask<String,Void,String> {
 
     }
 
-    private String getToken(String username, String password){
+    private JSONObject getAccessToken(String username, String password){
 
         InputStream inputStream = null;
         OutputStream outputStream = null;
@@ -137,8 +156,7 @@ public class Connection extends AsyncTask<String,Void,String> {
                     == HttpURLConnection.HTTP_OK){
                 inputStream = httpURLConnection.getInputStream();
                 String response = getStringFromInputStream(inputStream);
-                JSONObject jsonObject = new JSONObject(response);
-                return jsonObject.getString("access_token");
+                return new JSONObject(response);
             }
             else{
                 return  null;

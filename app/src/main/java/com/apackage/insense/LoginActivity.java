@@ -35,6 +35,7 @@ import com.apackage.api.Connection;
 import com.apackage.api.ConnectionListener;
 
 import org.json.JSONArray;
+import org.json.JSONObject;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -103,6 +104,16 @@ public class LoginActivity extends AppCompatActivity implements ConnectionListen
         //adaptadorListView = new ListViewAdapter(tweets,this);
         //ListView listView = (ListView) findViewById(R.id.listView);
         //listView.setAdapter(adaptadorListView);
+    }
+
+    @Override
+    public void onConnectionSuccess(String string) {
+
+    }
+
+    @Override
+    public void onConnectionSuccess(boolean result) {
+
     }
 
     /**

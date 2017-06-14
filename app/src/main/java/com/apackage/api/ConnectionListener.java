@@ -8,4 +8,6 @@ import org.json.JSONArray;
 public interface ConnectionListener {
     void onConnectionError();
     void onConnectionSuccess(JSONArray jsonArray);
+    void onConnectionSuccess(String string);
+    void onConnectionSuccess(boolean result);
 }
