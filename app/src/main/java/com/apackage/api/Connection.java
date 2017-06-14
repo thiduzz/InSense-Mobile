@@ -25,7 +25,7 @@ import java.util.Map;
 public class Connection extends AsyncTask<String,Void,String> {
 
     private static final int CLIENT_ID = 1;
-    private static final String CLIENT_SECRET = "GdXU1Z7I7woXVzgUsh0FfenNBdJo270XdpWzk2wC";
+    private static final String CLIENT_SECRET = "bIc3jb2EmPvPRYOlCTUF8uMkYXBAHXh1kD1YIJx2";
 
     private ConnectionListener connectionListener;
     private Context context;
