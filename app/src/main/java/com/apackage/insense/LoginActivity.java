@@ -4,7 +4,9 @@ import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.annotation.TargetApi;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.preference.PreferenceManager;
 import android.support.annotation.NonNull;
 import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
@@ -34,6 +36,7 @@ import android.widget.Toast;
 
 import com.apackage.api.Connection;
 import com.apackage.api.ConnectionListener;
+import com.apackage.db.DataBase;
 import com.apackage.utils.Constants;
 
 import org.json.JSONArray;
@@ -69,6 +72,25 @@ public class LoginActivity extends AppCompatActivity implements ConnectionListen
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        //TODO:check in the sqlite if there is an active user - if so, create the intent to redirect to the HOMEActivity
+
+        // Get the app's shared preferences
+        SharedPreferences preferences =
+                PreferenceManager.getDefaultSharedPreferences(this);
+        if(preferences.getBoolean("isLogged", false))
+        {
+            Intent intent = new Intent(LoginActivity.this,
+                    HomeActivity.class);
+            Bundle bundle = new Bundle();
+            int userId = preferences.getInt("userID", 0);
+            if(userId > 0)
+            {
+                bundle.putInt("userID", userId);
+                intent.putExtras(bundle);
+                startActivity(intent);
+            }
+        }
         setContentView(R.layout.activity_login);
         // Set up the login form.
         mEmailView = (EditText) findViewById(R.id.email);
@@ -125,6 +147,10 @@ public class LoginActivity extends AppCompatActivity implements ConnectionListen
     @Override
     public void onConnectionSuccess(Map<String, Object> result) {
         showProgress(false);
+
+        SharedPreferences preferences =
+                PreferenceManager.getDefaultSharedPreferences(this);
+        //TODO: inser preferences here
         Toast.makeText(this, "SUSEXO!", Toast.LENGTH_LONG).show();
         //adaptadorListView = new ListViewAdapter(tweets,this);
         //ListView listView = (ListView) findViewById(R.id.listView);

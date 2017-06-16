@@ -1,7 +1,9 @@
 package com.apackage.api;
 
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.os.AsyncTask;
+import android.preference.PreferenceManager;
 import android.widget.Toast;
 
 import com.apackage.db.DataBase;
@@ -114,7 +116,6 @@ public class Connection extends AsyncTask<String,Void,String> {
         }
     }
 
-
     @Override
     protected void onPostExecute(String string) {
         if(string == null){
@@ -197,6 +198,11 @@ public class Connection extends AsyncTask<String,Void,String> {
             }
         }
 
+    }
+
+    private JSONObject refreshAccessToken(String refresh_token)
+    {
+        return null;
     }
 
     private String getSettings(String apiToken, String query){

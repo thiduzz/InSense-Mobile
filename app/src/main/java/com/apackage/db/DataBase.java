@@ -9,6 +9,7 @@ import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
+import android.widget.Toast;
 
 import com.apackage.model.User;
 
@@ -62,8 +63,11 @@ public class DataBase extends SQLiteOpenHelper {
             COLUNA_LOGIN,COLUNA_TOKEN
     };
 
+    private Context context;
+
     public DataBase(Context context){
         super(context,NOME_TABELA_USERS,null,VERSAO_TABELA);
+        this.context = context;
     }
 
     @Override
@@ -93,7 +97,7 @@ public class DataBase extends SQLiteOpenHelper {
 
         cursor.moveToFirst();
         while (!cursor.isAfterLast()) {
-            User user = convertCursorOnCliente(cursor);
+            User user = convertCursorOnUsers(cursor);
             users.add(user);
             cursor.moveToNext();
         }
@@ -103,20 +107,25 @@ public class DataBase extends SQLiteOpenHelper {
     }
 
 
-    private User convertCursorOnCliente(Cursor cursor){
+    private User convertCursorOnUsers(Cursor cursor){
 
-        User user = new User();
-        user.setLogin(cursor.getString(
-                cursor.getColumnIndexOrThrow(COLUNA_LOGIN)));
-
-        user.setToken(cursor.getString(
-                cursor.getColumnIndexOrThrow(COLUNA_TOKEN)));
-
-
-        user.setRefreshToken(cursor.getString(
-                cursor.getColumnIndexOrThrow(COLUNA_REFRESH_TOKEN)));
-
-        return user;
+        try{
+            User user = new User();
+            user.setId(cursor.getInt(
+                    cursor.getColumnIndexOrThrow(COLUNA_ID)));
+            user.setName(cursor.getString(
+                    cursor.getColumnIndexOrThrow(COLUNA_NAME)));
+            user.setLogin(cursor.getString(
+                    cursor.getColumnIndexOrThrow(COLUNA_LOGIN)));
+            user.setToken(cursor.getString(
+                    cursor.getColumnIndexOrThrow(COLUNA_TOKEN)));
+            user.setRefreshToken(cursor.getString(
+                    cursor.getColumnIndexOrThrow(COLUNA_REFRESH_TOKEN)));
+            return user;
+        }catch (Exception e)
+        {
+            throw e;
+        }
     }
 
     public boolean find(User user)
@@ -188,5 +197,26 @@ public class DataBase extends SQLiteOpenHelper {
         }
     }
 
+
+    public User getActiveUser()
+    {
+        SQLiteDatabase db = getReadableDatabase();
+        Cursor cursor = db.query(NOME_TABELA_USERS, null,  COLUNA_ACTIVE_USER+" = ?",new String[]{"1"},null,null,null);
+        try {
+            if(cursor.getCount() > 0)
+            {
+                cursor.moveToFirst();
+                User user = convertCursorOnUsers(cursor);
+                cursor.close();
+                return user;
+            }
+        }catch (Exception e)
+        {
+            Toast.makeText(this.context.getApplicationContext(), e.getMessage(), Toast.LENGTH_LONG).show();
+        }finally {
+            cursor.close();
+        }
+        return null;
+    }
 
 }
