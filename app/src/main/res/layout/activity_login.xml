@@ -16,7 +16,7 @@
         android:id="@+id/login_progress"
         style="?android:attr/progressBarStyleLarge"
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_height="match_parent"
         android:layout_marginBottom="8dp"
         android:visibility="gone" />
 
@@ -45,6 +45,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:hint="@string/prompt_email"
+                    android:text="thiduzz14@gmail.com"
                     android:inputType="textEmailAddress"
                     android:maxLines="1"
                     android:textColor="@android:color/white"
@@ -62,6 +63,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:hint="@string/prompt_password"
+                    android:text="thithi"
                     android:imeActionId="@+id/login"
                     android:imeActionLabel="@string/action_sign_in_short"
                     android:imeOptions="actionUnspecified"
@@ -79,11 +81,25 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="16dp"
                 android:background="@android:color/white"
-                android:minHeight="65dp"
+                android:minHeight="50dp"
                 android:text="@string/action_sign_in"
                 android:textColor="@color/colorRed"
                 android:textSize="17sp"
                 android:textStyle="bold" />
+
+            <Button android:id="@+id/register_button"
+                style="?android:textAppearanceSmall"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="5dp"
+                android:background="@android:color/white"
+                android:minHeight="50dp"
+                android:text="@string/action_register"
+                android:textColor="@color/colorRed"
+                android:textSize="17sp"
+                android:textStyle="bold">
+
+            </Button>
 
         </LinearLayout>
     </ScrollView>

@@ -5,13 +5,15 @@
     <!-- Strings related to login -->
     <string name="prompt_email" translatable="false">Email</string>
     <string name="prompt_password">Senha (opcional)</string>
-    <string name="action_sign_in">Entrar ou registrar</string>
+    <string name="action_sign_in">Entrar</string>
+    <string name="action_register">Registrar</string>
     <string name="action_sign_in_short">Entrar</string>
     <string name="error_invalid_email">O endereço de email é inválido</string>
     <string name="error_invalid_password">A senha é muito curta</string>
     <string name="error_incorrect_password">A senha está incorreta</string>
     <string name="error_field_required">O campo é obrigatório</string>
 
-    <string name="auth_login" translatable="false">http://insense.vizad.com.br/oauth</string>
-    <string name="auth_token" translatable="false">http://insense.vizad.com.br/token</string>
+    <string name="register_url" translatable="false">http://insense.vizad.com.br/register</string>
+    <string name="auth_login" translatable="false">http://insense.vizad.com.br/api/user/</string>
+    <string name="auth_token" translatable="false">http://insense.vizad.com.br/oauth/token</string>
 </resources>

@@ -33,7 +33,7 @@ public class DataBase extends SQLiteOpenHelper {
     private static String COLUNA_OPTION_VALUE = "OPTION_VALUE";
 
     private static final String CREATE_TABLE_QUERY =
-            "CREATE TABLE " + NOME_TABELA_USERS + " (" +
+            "CREATE TABLE IF NOT EXISTS " + NOME_TABELA_USERS + " (" +
                     COLUNA_ID + " INTEGER PRIMARY KEY NOT NULL, " +
                     COLUNA_LOGIN + " TEXT, " +
                     COLUNA_NAME + " TEXT, " +
@@ -42,19 +42,19 @@ public class DataBase extends SQLiteOpenHelper {
                     COLUNA_REFRESH_TOKEN + " TEXT );";
 
     private static final String CREATE_DEVICES_TABLE_QUERY =
-            "CREATE TABLE " + NOME_TABELA_DEVICES + " (" +
+            "CREATE TABLE IF NOT EXISTS " + NOME_TABELA_DEVICES + " (" +
                     COLUNA_ID + " INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
                     COLUNA_MODEL + " TEXT, " +
-                    COLUNA_FK_USER + " INTEGER"+
+                    COLUNA_FK_USER + " INTEGER,"+
                     " FOREIGN KEY ("+COLUNA_FK_USER+") REFERENCES "+NOME_TABELA_USERS+"("+COLUNA_ID+")"+
                     ");";
 
     private static final String CREATE_SETTINGS_TABLE_QUERY =
-            "CREATE TABLE " + NOME_TABELA_DEVICES + " (" +
+            "CREATE TABLE IF NOT EXISTS " + NOME_TABELA_DEVICES + " (" +
                     COLUNA_ID + " INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
                     COLUNA_OPTION + " TEXT, " +
                     COLUNA_OPTION_VALUE + " TEXT, " +
-                    COLUNA_FK_USER + " INTEGER"+
+                    COLUNA_FK_USER + " INTEGER,"+
                     " FOREIGN KEY ("+COLUNA_FK_USER+") REFERENCES "+NOME_TABELA_USERS+"("+COLUNA_ID+")"+
                     ");";
 

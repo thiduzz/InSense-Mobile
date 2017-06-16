@@ -3,6 +3,7 @@ package com.apackage.insense;
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.annotation.TargetApi;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.support.annotation.NonNull;
 import android.support.design.widget.Snackbar;
@@ -33,12 +34,14 @@ import android.widget.Toast;
 
 import com.apackage.api.Connection;
 import com.apackage.api.ConnectionListener;
+import com.apackage.utils.Constants;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import static android.Manifest.permission.READ_CONTACTS;
 import static android.R.attr.tag;
@@ -90,6 +93,16 @@ public class LoginActivity extends AppCompatActivity implements ConnectionListen
             }
         });
 
+
+        Button mRegisterButton = (Button) findViewById(R.id.register_button);
+        mRegisterButton.setOnClickListener(new OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Intent browserIntent = new Intent("android.intent.action.VIEW", Uri.parse(getString(R.string.register_url)));
+                startActivity(browserIntent);
+            }
+        });
+
         mLoginFormView = findViewById(R.id.login_form);
         mProgressView = findViewById(R.id.login_progress);
     }
@@ -100,21 +113,24 @@ public class LoginActivity extends AppCompatActivity implements ConnectionListen
     }
 
     @Override
-    public void onConnectionSuccess(JSONArray tweets) {
+    public void onConnectionSuccess() {
+
+    }
+
+    @Override
+    public void onConnectionError(Map<String, String> result) {
+        Toast.makeText(this, result.get("error"), Toast.LENGTH_LONG).show();
+    }
+
+    @Override
+    public void onConnectionSuccess(Map<String, Object> result) {
+        showProgress(false);
+        Toast.makeText(this, "SUSEXO!", Toast.LENGTH_LONG).show();
         //adaptadorListView = new ListViewAdapter(tweets,this);
         //ListView listView = (ListView) findViewById(R.id.listView);
         //listView.setAdapter(adaptadorListView);
     }
 
-    @Override
-    public void onConnectionSuccess(String string) {
-
-    }
-
-    @Override
-    public void onConnectionSuccess(boolean result) {
-
-    }
 
     /**
      * Attempts to sign in or register the account specified by the login form.
@@ -162,8 +178,7 @@ public class LoginActivity extends AppCompatActivity implements ConnectionListen
             // Show a progress spinner, and kick off a background task to
             // perform the user login attempt.
             showProgress(true);
-
-            con.execute("login",email, password);
+            con.execute(Constants.REQUEST_LOGIN,email, password);
         }
     }
 
