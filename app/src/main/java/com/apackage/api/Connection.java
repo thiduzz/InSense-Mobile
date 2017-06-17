@@ -10,6 +10,7 @@ import com.apackage.db.DataBase;
 import com.apackage.insense.R;
 import com.apackage.model.User;
 import com.apackage.utils.Constants;
+import com.google.gson.Gson;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -27,13 +28,14 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-public class Connection extends AsyncTask<String,Void,String> {
+public class Connection extends AsyncTask<String,Void,Object> {
 
     private static final int CLIENT_ID = 1;
     private static final String CLIENT_SECRET = "bIc3jb2EmPvPRYOlCTUF8uMkYXBAHXh1kD1YIJx2";
 
     private ConnectionListener connectionListener;
     private Context context;
+    private String type;
     private final DataBase db;
 
     public Connection(ConnectionListener connectionListener, Context context){
@@ -43,40 +45,56 @@ public class Connection extends AsyncTask<String,Void,String> {
     }
 
     @Override
-    protected String doInBackground(String... query) {
-        switch(query[0])
+    protected Object doInBackground(String... query) {
+        this.type = query[0];
+        switch(type)
         {
             case Constants.REQUEST_LOGIN:
-                JSONObject tokenResponse = getAccessToken(query[1],query[2]);
                 try {
-                    JSONObject loginResponse = authenticate(tokenResponse.getString("access_token"));
-                    User user = new User(loginResponse.getInt("id"), loginResponse.getString("email"), tokenResponse.getString("access_token"), loginResponse.getString("name"), tokenResponse.getString("refresh_token"));
-                    int resultAuth = db.saveOrUpdate(user, true);
-                    if(resultAuth == 1)
-                    {
-                        //TODO: salvar/atualizar os dispositivos cadastrados do usuario
-                        return Integer.toString(user.getId());
-                    }
-                    throw new Exception("Falhou ao salvar as informacoes do usuário no dispositivo");
+                    JSONObject tokenResponse = getAccessToken(query[1],query[2]);
+                    return attemptAuthentication(tokenResponse.getString("access_token"), tokenResponse.getString("refresh_token"));
                 } catch (JSONException e) {
-                    e.printStackTrace();
-                    return null;
+                    return e;
                 } catch (Exception e) {
-                    e.printStackTrace();
-                    return null;
+                    return e;
                 }
             case Constants.REQUEST_SETTINGS:
                 //return getSettings(getToken(),query[0]);
-                return "";
+                return null;
             case Constants.REQUEST_DEVICES:
-                return "";
+                return null;
             case Constants.REQUEST_REFRESH_TOKEN:
-                return "";
+                return null;
+            case Constants.REQUEST_VALIDATE_TOKEN:
+                try {
+                    JSONObject refreshTokenResponse = refreshAccessToken(query[1]);
+                    return attemptAuthentication(refreshTokenResponse.getString("access_token"), refreshTokenResponse.getString("refresh_token"));
+                } catch (JSONException e) {
+                    return e;
+                } catch (Exception e) {
+                    return e;
+                }
         }
-        return "";
+        return null;
     }
 
-    private JSONObject authenticate(String access_token) {
+    private User attemptAuthentication(String access_token, String refresh_token) throws Exception {
+        JSONObject loginResponse = user(access_token);
+        if(loginResponse != null)
+        {
+            User user = new User(loginResponse.getInt("id"), loginResponse.getString("email"), access_token, loginResponse.getString("name"), refresh_token);
+            int resultAuth = db.saveOrUpdate(user, true);
+            if(resultAuth == 1)
+            {
+                //TODO: salvar/atualizar os dispositivos cadastrados do usuario
+                return user;
+            }
+            throw new Exception("Falhou ao salvar as informações do usuário no dispositivo");
+        }
+        throw new Exception("Falha na autenticação do usuário!");
+    }
+
+    private JSONObject user(String access_token) {
         InputStream inputStream = null;
         OutputStream outputStream = null;
         try {
@@ -117,27 +135,61 @@ public class Connection extends AsyncTask<String,Void,String> {
     }
 
     @Override
-    protected void onPostExecute(String string) {
-        if(string == null){
+    protected void onPostExecute(Object connection_result) {
+        Map<String, Object> result = new HashMap<String, Object>();
+        if(connection_result == null){
             connectionListener.onConnectionError();
+        }else if(connection_result instanceof Exception){
+            Map<String, String> error = new HashMap<String, String>();
+            error.put("name", this.type);
+            error.put("error", ((Exception)result).getMessage());
+            connectionListener.onConnectionError(error);
         }else{
             try {
-
-                Map<String, Object> result = new HashMap<String, Object>();
-                result.put("name", Thread.currentThread().getName());
-                result.put("result",string);
-                connectionListener.onConnectionSuccess(result);
+                switch(this.type)
+                {
+                    case Constants.REQUEST_LOGIN:
+                        if(connection_result instanceof User)
+                        {
+                            Gson gson = new Gson();
+                            result.put("name", this.type);
+                            result.put("result",(User)connection_result);
+                            connectionListener.onConnectionSuccess(result);
+                        }
+                        break;
+                    case Constants.REQUEST_SETTINGS:
+                        break;
+                    case Constants.REQUEST_DEVICES:
+                        break;
+                    case Constants.REQUEST_REFRESH_TOKEN:
+                        break;
+                    case Constants.REQUEST_VALIDATE_TOKEN:
+                        if(connection_result instanceof User)
+                        {
+                            Gson gson = new Gson();
+                            result.put("name", this.type);
+                            result.put("result",(User)connection_result);
+                            connectionListener.onConnectionSuccess(result);
+                        }
+                        break;
+                    default:
+                        Map<String, String> error = new HashMap<String, String>();
+                        error.put("name", this.type);
+                        error.put("error", "Resultado inesperado da request");
+                        connectionListener.onConnectionError(error);
+                        break;
+                }
             }
             catch (Exception e){
                 Map<String, String> error = new HashMap<String, String>();
-                error.put("name", Thread.currentThread().getName());
+                error.put("name", this.type);
                 error.put("error", e.getMessage());
                 connectionListener.onConnectionError(error);
             }
         }
     }
 
-    private JSONObject getAccessToken(String username, String password){
+    private JSONObject getAccessToken(String username, String password) throws Exception {
 
         InputStream inputStream = null;
         OutputStream outputStream = null;
@@ -179,11 +231,11 @@ public class Connection extends AsyncTask<String,Void,String> {
                 return new JSONObject(response);
             }
             else{
-                return  null;
+                throw new Exception("Falha na autenticação!");
             }
         }
         catch (Exception e){
-            return  null;
+            throw e;
         }
         finally {
             if(inputStream != null){
@@ -200,9 +252,64 @@ public class Connection extends AsyncTask<String,Void,String> {
 
     }
 
-    private JSONObject refreshAccessToken(String refresh_token)
-    {
-        return null;
+    private JSONObject refreshAccessToken(String refresh_token) throws Exception {
+        InputStream inputStream = null;
+        OutputStream outputStream = null;
+
+        try {
+            URL url = new URL(context.getString(R.string.auth_token));
+            HttpURLConnection httpURLConnection = (HttpURLConnection)
+                    url.openConnection();
+            httpURLConnection.setRequestMethod("POST");
+            //httpURLConnection.addRequestProperty("Authorization","Basic " +API_KEY);
+            httpURLConnection.addRequestProperty("Content-Type","application/x-www-form-urlencoded;charset=UTF-8");
+            Map<String,Object> params = new LinkedHashMap<>();
+            params.put("grant_type", "refresh_token");
+            params.put("client_id", CLIENT_ID);
+            params.put("client_secret", CLIENT_SECRET);
+            params.put("refresh_token", refresh_token);
+            params.put("scope", "*");
+
+            StringBuilder postData = new StringBuilder();
+            for (Map.Entry<String,Object> param : params.entrySet()) {
+                if (postData.length() != 0) postData.append('&');
+                postData.append(URLEncoder.encode(param.getKey(), "UTF-8"));
+                postData.append('=');
+                postData.append(URLEncoder.encode(String.valueOf(param.getValue()), "UTF-8"));
+            }
+            byte[] postDataBytes = postData.toString().getBytes("UTF-8");
+
+            outputStream = httpURLConnection.getOutputStream();
+
+            outputStream.write(postDataBytes);
+
+            httpURLConnection.connect();
+
+            if(httpURLConnection.getResponseCode()
+                    == HttpURLConnection.HTTP_OK){
+                inputStream = httpURLConnection.getInputStream();
+                String response = getStringFromInputStream(inputStream);
+                return new JSONObject(response);
+            }
+            else{
+                throw new Exception("Falha na atualizacao do token!");
+            }
+        }
+        catch (Exception e){
+            throw e;
+        }
+        finally {
+            if(inputStream != null){
+                try {
+                    inputStream.close();
+                }catch (Exception ex){}
+            }
+            if(outputStream != null){
+                try {
+                    outputStream.close();
+                }catch (Exception ex){}
+            }
+        }
     }
 
     private String getSettings(String apiToken, String query){

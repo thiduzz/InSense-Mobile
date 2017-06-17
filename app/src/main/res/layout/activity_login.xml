@@ -18,38 +18,40 @@
         android:layout_width="wrap_content"
         android:layout_height="match_parent"
         android:layout_marginBottom="8dp"
-        android:visibility="gone" />
+        android:visibility="visible" />
 
     <ScrollView
         android:id="@+id/login_form"
         android:layout_width="match_parent"
-        android:layout_height="match_parent">
+        android:layout_height="match_parent"
+        android:visibility="gone">
 
         <LinearLayout
             android:id="@+id/email_login_form"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical">
+
             <ImageView
-                android:src="@drawable/logo_inverted"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                />
+                android:src="@drawable/logo_inverted" />
+
             <android.support.design.widget.TextInputLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content">
 
                 <EditText
                     android:id="@+id/email"
-                    android:textColorHint="@android:color/white"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:hint="@string/prompt_email"
-                    android:text="thiduzz14@gmail.com"
                     android:inputType="textEmailAddress"
                     android:maxLines="1"
+                    android:singleLine="true"
+                    android:text="thiduzz14@gmail.com"
                     android:textColor="@android:color/white"
-                    android:singleLine="true" />
+                    android:textColorHint="@android:color/white" />
 
             </android.support.design.widget.TextInputLayout>
 
@@ -59,18 +61,18 @@
 
                 <EditText
                     android:id="@+id/password"
-                    android:textColorHint="@android:color/white"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:hint="@string/prompt_password"
-                    android:text="thithi"
                     android:imeActionId="@+id/login"
                     android:imeActionLabel="@string/action_sign_in_short"
                     android:imeOptions="actionUnspecified"
-                    android:textColor="@android:color/white"
                     android:inputType="textPassword"
                     android:maxLines="1"
-                    android:singleLine="true" />
+                    android:singleLine="true"
+                    android:text="thithi"
+                    android:textColor="@android:color/white"
+                    android:textColorHint="@android:color/white" />
 
             </android.support.design.widget.TextInputLayout>
 
@@ -87,7 +89,8 @@
                 android:textSize="17sp"
                 android:textStyle="bold" />
 
-            <Button android:id="@+id/register_button"
+            <Button
+                android:id="@+id/register_button"
                 style="?android:textAppearanceSmall"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"

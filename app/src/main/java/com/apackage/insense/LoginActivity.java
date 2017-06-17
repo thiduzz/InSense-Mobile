@@ -37,7 +37,9 @@ import android.widget.Toast;
 import com.apackage.api.Connection;
 import com.apackage.api.ConnectionListener;
 import com.apackage.db.DataBase;
+import com.apackage.model.User;
 import com.apackage.utils.Constants;
+import com.google.gson.Gson;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -72,29 +74,14 @@ public class LoginActivity extends AppCompatActivity implements ConnectionListen
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
-        //TODO:check in the sqlite if there is an active user - if so, create the intent to redirect to the HOMEActivity
+        final DataBase db = new DataBase(this);
 
         // Get the app's shared preferences
         SharedPreferences preferences =
                 PreferenceManager.getDefaultSharedPreferences(this);
-        if(preferences.getBoolean("isLogged", false))
-        {
-            Intent intent = new Intent(LoginActivity.this,
-                    HomeActivity.class);
-            Bundle bundle = new Bundle();
-            int userId = preferences.getInt("userID", 0);
-            if(userId > 0)
-            {
-                bundle.putInt("userID", userId);
-                intent.putExtras(bundle);
-                startActivity(intent);
-            }
-        }
         setContentView(R.layout.activity_login);
         // Set up the login form.
         mEmailView = (EditText) findViewById(R.id.email);
-
         mPasswordView = (EditText) findViewById(R.id.password);
         mPasswordView.setOnEditorActionListener(new TextView.OnEditorActionListener() {
             @Override
@@ -127,6 +114,28 @@ public class LoginActivity extends AppCompatActivity implements ConnectionListen
 
         mLoginFormView = findViewById(R.id.login_form);
         mProgressView = findViewById(R.id.login_progress);
+        if(preferences.getBoolean("isLogged", false))
+        {
+            Intent intent = new Intent(LoginActivity.this,
+                    HomeActivity.class);
+            Bundle bundle = new Bundle();
+            int userId = preferences.getInt("userID", 0);
+            if(userId > 0)
+            {
+                if(db.isActiveUser(userId))
+                {
+                    User user = db.getActiveUser();
+                    con = new Connection(this, getApplicationContext());
+                    con.execute(Constants.REQUEST_VALIDATE_TOKEN, user.getRefreshToken());
+                }
+            }else{
+                showProgress(false);
+                SharedPreferences.Editor editor = preferences.edit();
+                editor.remove("userID").remove("isLogged").commit();
+            }
+        }else{
+            showProgress(false);
+        }
     }
 
     @Override
@@ -146,15 +155,48 @@ public class LoginActivity extends AppCompatActivity implements ConnectionListen
 
     @Override
     public void onConnectionSuccess(Map<String, Object> result) {
-        showProgress(false);
-
+        User user;
         SharedPreferences preferences =
                 PreferenceManager.getDefaultSharedPreferences(this);
-        //TODO: inser preferences here
-        Toast.makeText(this, "SUSEXO!", Toast.LENGTH_LONG).show();
-        //adaptadorListView = new ListViewAdapter(tweets,this);
-        //ListView listView = (ListView) findViewById(R.id.listView);
-        //listView.setAdapter(adaptadorListView);
+        SharedPreferences.Editor editor = preferences.edit();
+        Intent intent;
+        Bundle bundle;
+        bundle = new Bundle();
+        switch ((String)result.get("name"))
+        {
+            case Constants.REQUEST_LOGIN:
+                showProgress(false);
+                user = (User) result.get("result");
+                editor.putInt("userID", user.getId());
+                editor.putBoolean("isLogged", true);
+                //salvar de forma sincrona
+                editor.commit();
+                intent = new Intent(LoginActivity.this,
+                        HomeActivity.class);
+                bundle.putInt("userID", user.getId());
+                intent.putExtras(bundle);
+                startActivity(intent);
+                break;
+            case Constants.REQUEST_SETTINGS:
+                break;
+            case Constants.REQUEST_DEVICES:
+                break;
+            case Constants.REQUEST_REFRESH_TOKEN:
+                break;
+            case Constants.REQUEST_VALIDATE_TOKEN:
+                showProgress(false);
+                user = (User) result.get("result");
+                editor.putInt("userID", user.getId());
+                editor.putBoolean("isLogged", true);
+                //salvar de forma sincrona
+                editor.commit();
+                intent = new Intent(LoginActivity.this,
+                        HomeActivity.class);
+                bundle.putInt("userID", user.getId());
+                intent.putExtras(bundle);
+                startActivity(intent);
+                break;
+        }
     }
 
 

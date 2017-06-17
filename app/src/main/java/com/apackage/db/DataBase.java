@@ -139,7 +139,18 @@ public class DataBase extends SQLiteOpenHelper {
         return false;
     }
 
-    public int authenticate(User user)
+    public boolean isActiveUser(int id)
+    {
+        SQLiteDatabase db = getReadableDatabase();
+        Cursor cursor = db.query(NOME_TABELA_USERS, new String[]{COLUNA_ID},  COLUNA_ID+" = ? and "+COLUNA_ACTIVE_USER+" = 1",new String[]{Integer.toString(id)},null,null,null);
+        if(cursor.getCount() > 0)
+        {
+            return true;
+        }
+        return false;
+    }
+
+    public int authenticate(int user)
     {
         SQLiteDatabase db = getWritableDatabase();
         //reset all users to inactive
@@ -149,7 +160,7 @@ public class DataBase extends SQLiteOpenHelper {
         //activate current user
         ContentValues values = new ContentValues();
         values.put(COLUNA_ACTIVE_USER, 1);
-        return db.update(NOME_TABELA_USERS, values, COLUNA_ID +" = '"+ user.getId() + "'", null);
+        return db.update(NOME_TABELA_USERS, values, COLUNA_ID +" = '"+ user + "'", null);
     }
 
     public int update(User user)
@@ -178,21 +189,21 @@ public class DataBase extends SQLiteOpenHelper {
     {
         if(find(user))
         {
-            if(auth)
+            if(!auth)
             {
                 return update(user);
             }else{
                 int updateResult = update(user);
-                int authResult = authenticate(user);
+                int authResult = authenticate(user.getId());
                 return updateResult > 0 && authResult > 0 ? updateResult : 0;
             }
         }
-        if(auth)
+        if(!auth)
         {
             return save(user);
         }else{
             int insertResult = save(user);
-            int authResult = authenticate(user);
+            int authResult = authenticate(user.getId());
             return insertResult > 0 && authResult > 0 ? insertResult : 0;
         }
     }
