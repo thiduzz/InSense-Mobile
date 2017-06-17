@@ -1,5 +1,6 @@
 apply plugin: 'com.android.application'
 
+android.defaultConfig.vectorDrawables.useSupportLibrary = true;
 android {
     compileSdkVersion 26
     buildToolsVersion "26.0.0"
@@ -32,5 +33,6 @@ dependencies {
     compile 'com.android.support.constraint:constraint-layout:1.0.2'
     compile 'com.android.support:design:26.+'
     compile 'com.google.code.gson:gson:2.2.4'
+    compile 'com.android.support:support-v4:26.+'
     testCompile 'junit:junit:4.12'
 }

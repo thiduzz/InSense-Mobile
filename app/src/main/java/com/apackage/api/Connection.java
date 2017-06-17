@@ -142,7 +142,7 @@ public class Connection extends AsyncTask<String,Void,Object> {
         }else if(connection_result instanceof Exception){
             Map<String, String> error = new HashMap<String, String>();
             error.put("name", this.type);
-            error.put("error", ((Exception)result).getMessage());
+            error.put("error", ((Exception)connection_result).getMessage());
             connectionListener.onConnectionError(error);
         }else{
             try {

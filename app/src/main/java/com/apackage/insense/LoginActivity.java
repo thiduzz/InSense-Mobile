@@ -141,6 +141,7 @@ public class LoginActivity extends AppCompatActivity implements ConnectionListen
     @Override
     public void onConnectionError() {
         Toast.makeText(this, "Erro de Conexão", Toast.LENGTH_LONG).show();
+        showProgress(false);
     }
 
     @Override
@@ -151,6 +152,7 @@ public class LoginActivity extends AppCompatActivity implements ConnectionListen
     @Override
     public void onConnectionError(Map<String, String> result) {
         Toast.makeText(this, result.get("error"), Toast.LENGTH_LONG).show();
+        showProgress(false);
     }
 
     @Override
