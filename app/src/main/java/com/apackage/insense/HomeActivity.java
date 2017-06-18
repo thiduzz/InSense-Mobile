@@ -140,6 +140,9 @@ public class HomeActivity extends AppCompatActivity
         } else if (id == R.id.nav_help) {
 
         } else if (id == R.id.nav_map) {
+            MapFragment mapFragment = new MapFragment();
+            FragmentManager manager = getSupportFragmentManager();
+            manager.beginTransaction().replace(R.id.main_layout, mapFragment, mapFragment.getTag()).commit();
 
         } else if (id == R.id.nav_settings) {
 
