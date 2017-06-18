@@ -5,7 +5,7 @@ import java.util.Map;
 /**
  * Created by thidu on 18/11/2016.
  */
-public interface ConnectionListener {
+public interface ServerConnectionListener {
     void onConnectionError();
     void onConnectionSuccess();
     void onConnectionError(Map<String, String> result);

@@ -1,10 +1,7 @@
 package com.apackage.api;
 
 import android.content.Context;
-import android.content.SharedPreferences;
 import android.os.AsyncTask;
-import android.preference.PreferenceManager;
-import android.widget.Toast;
 
 import com.apackage.db.DataBase;
 import com.apackage.insense.R;
@@ -12,13 +9,11 @@ import com.apackage.model.User;
 import com.apackage.utils.Constants;
 import com.google.gson.Gson;
 
-import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.ObjectOutputStream;
 import java.io.OutputStream;
 import java.io.Reader;
 import java.net.HttpURLConnection;
@@ -28,18 +23,18 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-public class Connection extends AsyncTask<String,Void,Object> {
+public class ServerConnection extends AsyncTask<String,Void,Object> {
 
     private static final int CLIENT_ID = 1;
     private static final String CLIENT_SECRET = "bIc3jb2EmPvPRYOlCTUF8uMkYXBAHXh1kD1YIJx2";
 
-    private ConnectionListener connectionListener;
+    private ServerConnectionListener serverConnectionListener;
     private Context context;
     private String type;
     private final DataBase db;
 
-    public Connection(ConnectionListener connectionListener, Context context){
-        this.connectionListener = connectionListener;
+    public ServerConnection(ServerConnectionListener serverConnectionListener, Context context){
+        this.serverConnectionListener = serverConnectionListener;
         this.context = context;
         this.db = new DataBase(context);
     }
@@ -138,12 +133,12 @@ public class Connection extends AsyncTask<String,Void,Object> {
     protected void onPostExecute(Object connection_result) {
         Map<String, Object> result = new HashMap<String, Object>();
         if(connection_result == null){
-            connectionListener.onConnectionError();
+            serverConnectionListener.onConnectionError();
         }else if(connection_result instanceof Exception){
             Map<String, String> error = new HashMap<String, String>();
             error.put("name", this.type);
             error.put("error", ((Exception)connection_result).getMessage());
-            connectionListener.onConnectionError(error);
+            serverConnectionListener.onConnectionError(error);
         }else{
             try {
                 switch(this.type)
@@ -154,7 +149,7 @@ public class Connection extends AsyncTask<String,Void,Object> {
                             Gson gson = new Gson();
                             result.put("name", this.type);
                             result.put("result",(User)connection_result);
-                            connectionListener.onConnectionSuccess(result);
+                            serverConnectionListener.onConnectionSuccess(result);
                         }
                         break;
                     case Constants.REQUEST_SETTINGS:
@@ -169,14 +164,14 @@ public class Connection extends AsyncTask<String,Void,Object> {
                             Gson gson = new Gson();
                             result.put("name", this.type);
                             result.put("result",(User)connection_result);
-                            connectionListener.onConnectionSuccess(result);
+                            serverConnectionListener.onConnectionSuccess(result);
                         }
                         break;
                     default:
                         Map<String, String> error = new HashMap<String, String>();
                         error.put("name", this.type);
                         error.put("error", "Resultado inesperado da request");
-                        connectionListener.onConnectionError(error);
+                        serverConnectionListener.onConnectionError(error);
                         break;
                 }
             }
@@ -184,7 +179,7 @@ public class Connection extends AsyncTask<String,Void,Object> {
                 Map<String, String> error = new HashMap<String, String>();
                 error.put("name", this.type);
                 error.put("error", e.getMessage());
-                connectionListener.onConnectionError(error);
+                serverConnectionListener.onConnectionError(error);
             }
         }
     }

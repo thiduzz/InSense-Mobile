@@ -5,56 +5,35 @@ import android.animation.AnimatorListenerAdapter;
 import android.annotation.TargetApi;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.content.pm.PackageManager;
 import android.preference.PreferenceManager;
-import android.support.annotation.NonNull;
-import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
-import android.app.LoaderManager.LoaderCallbacks;
 
-import android.content.CursorLoader;
-import android.content.Loader;
-import android.database.Cursor;
 import android.net.Uri;
-import android.os.AsyncTask;
 
 import android.os.Build;
 import android.os.Bundle;
-import android.provider.ContactsContract;
 import android.text.TextUtils;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.view.inputmethod.EditorInfo;
-import android.widget.ArrayAdapter;
-import android.widget.AutoCompleteTextView;
 import android.widget.Button;
 import android.widget.EditText;
-import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.apackage.api.Connection;
-import com.apackage.api.ConnectionListener;
+import com.apackage.api.ServerConnection;
+import com.apackage.api.ServerConnectionListener;
 import com.apackage.db.DataBase;
 import com.apackage.model.User;
 import com.apackage.utils.Constants;
-import com.google.gson.Gson;
 
-import org.json.JSONArray;
-import org.json.JSONObject;
-
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
-
-import static android.Manifest.permission.READ_CONTACTS;
-import static android.R.attr.tag;
 
 /**
  * A login screen that offers login via email/password.
  */
-public class LoginActivity extends AppCompatActivity implements ConnectionListener {
+public class LoginActivity extends AppCompatActivity implements ServerConnectionListener {
 
     /**
      * Id to identity READ_CONTACTS permission request.
@@ -69,7 +48,7 @@ public class LoginActivity extends AppCompatActivity implements ConnectionListen
 
     // Connectors
     private int request_code = 1000;
-    private Connection con;
+    private ServerConnection con;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -125,7 +104,7 @@ public class LoginActivity extends AppCompatActivity implements ConnectionListen
                 if(db.isActiveUser(userId))
                 {
                     User user = db.getActiveUser();
-                    con = new Connection(this, getApplicationContext());
+                    con = new ServerConnection(this, getApplicationContext());
                     con.execute(Constants.REQUEST_VALIDATE_TOKEN, user.getRefreshToken());
                 }
             }else{
@@ -178,6 +157,7 @@ public class LoginActivity extends AppCompatActivity implements ConnectionListen
                 bundle.putInt("userID", user.getId());
                 intent.putExtras(bundle);
                 startActivity(intent);
+                finish();
                 break;
             case Constants.REQUEST_SETTINGS:
                 break;
@@ -186,7 +166,6 @@ public class LoginActivity extends AppCompatActivity implements ConnectionListen
             case Constants.REQUEST_REFRESH_TOKEN:
                 break;
             case Constants.REQUEST_VALIDATE_TOKEN:
-                showProgress(false);
                 user = (User) result.get("result");
                 editor.putInt("userID", user.getId());
                 editor.putBoolean("isLogged", true);
@@ -197,6 +176,7 @@ public class LoginActivity extends AppCompatActivity implements ConnectionListen
                 bundle.putInt("userID", user.getId());
                 intent.putExtras(bundle);
                 startActivity(intent);
+                finish();
                 break;
         }
     }
@@ -209,7 +189,7 @@ public class LoginActivity extends AppCompatActivity implements ConnectionListen
      */
     private void attemptLogin() {
 
-        con = new Connection(this, getApplicationContext());
+        con = new ServerConnection(this, getApplicationContext());
 
         // Reset errors.
         mEmailView.setError(null);

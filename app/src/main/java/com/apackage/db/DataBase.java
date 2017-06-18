@@ -154,9 +154,7 @@ public class DataBase extends SQLiteOpenHelper {
     {
         SQLiteDatabase db = getWritableDatabase();
         //reset all users to inactive
-        ContentValues resetValues = new ContentValues();
-        resetValues.put(COLUNA_ACTIVE_USER, 0);
-        db.update(NOME_TABELA_USERS, resetValues, "", null);
+        logoutCurrentUser();
         //activate current user
         ContentValues values = new ContentValues();
         values.put(COLUNA_ACTIVE_USER, 1);
@@ -228,6 +226,15 @@ public class DataBase extends SQLiteOpenHelper {
             cursor.close();
         }
         return null;
+    }
+
+    public boolean logoutCurrentUser()
+    {
+        SQLiteDatabase db = getWritableDatabase();
+        ContentValues resetValues = new ContentValues();
+        resetValues.put(COLUNA_ACTIVE_USER, 0);
+        int result = db.update(NOME_TABELA_USERS, resetValues, "", null);
+        return result > 0;
     }
 
 }

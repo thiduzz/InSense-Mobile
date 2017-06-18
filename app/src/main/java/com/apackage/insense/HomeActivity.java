@@ -1,5 +1,7 @@
 package com.apackage.insense;
 
+import android.app.Fragment;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
@@ -15,28 +17,28 @@ import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.view.ViewStub;
+import android.widget.TextView;
 import android.widget.Toast;
 
-import com.apackage.api.Connection;
-import com.apackage.api.ConnectionListener;
+import com.apackage.api.ServerConnection;
+import com.apackage.api.ServerConnectionListener;
 import com.apackage.db.DataBase;
+import com.apackage.model.User;
 import com.apackage.utils.OnActivityFragmentsInteractionListener;
+
+import org.w3c.dom.Text;
 
 import java.util.Map;
 
 public class HomeActivity extends AppCompatActivity
-        implements NavigationView.OnNavigationItemSelectedListener, ConnectionListener, OnActivityFragmentsInteractionListener<Object> {
-    private Connection con;
+        implements NavigationView.OnNavigationItemSelectedListener, OnActivityFragmentsInteractionListener<Object> {
     private int userID;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        final DataBase db = new DataBase(this);
         userID = getIntent().getExtras().getInt("userID",0);
         if(userID > 0)
         {
-            con = new Connection(this, getApplicationContext());
             setContentView(R.layout.activity_home);
             Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
             setSupportActionBar(toolbar);
@@ -57,7 +59,25 @@ public class HomeActivity extends AppCompatActivity
             toggle.syncState();
 
             NavigationView navigationView = (NavigationView) findViewById(R.id.nav_view);
+            View headerView = navigationView.inflateHeaderView(R.layout.nav_header_home);
             navigationView.setNavigationItemSelectedListener(this);
+
+            DataBase db = new DataBase(this);
+            User u = db.getActiveUser();
+            TextView userName = (TextView) headerView.findViewById(R.id.userName);
+            userName.setText(u.getName());
+            TextView userEmail = (TextView) headerView.findViewById(R.id.userEmail);
+            userEmail.setText(u.getLogin());
+
+
+            Fragment mFragment = getFragmentManager().findFragmentById(R.id.main_layout);
+            if(mFragment == null)
+            {
+                HomeFragment homeFragment = new HomeFragment();
+                FragmentManager manager = getSupportFragmentManager();
+                manager.beginTransaction().replace(R.id.main_layout, homeFragment, homeFragment.getTag()).commit();
+                navigationView.setCheckedItem(R.id.nav_home);
+            }
         }else{
             Toast.makeText(getApplicationContext(), "Problema encontrado ao buscar usuario corrente", Toast.LENGTH_LONG).show();
             SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(this);
@@ -79,7 +99,7 @@ public class HomeActivity extends AppCompatActivity
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
-        getMenuInflater().inflate(R.menu.home, menu);
+        //getMenuInflater().inflate(R.menu.home, menu);
         return true;
     }
 
@@ -88,12 +108,12 @@ public class HomeActivity extends AppCompatActivity
         // Handle action bar item clicks here. The action bar will
         // automatically handle clicks on the Home/Up button, so long
         // as you specify a parent activity in AndroidManifest.xml.
-        int id = item.getItemId();
+        //int id = item.getItemId();
 
         //noinspection SimplifiableIfStatement
-        if (id == R.id.action_settings) {
-            return true;
-        }
+        //if (id == R.id.action_settings) {
+        //    return true;
+        //}
 
         return super.onOptionsItemSelected(item);
     }
@@ -113,6 +133,9 @@ public class HomeActivity extends AppCompatActivity
             manager.beginTransaction().replace(R.id.main_layout, appsFragment, appsFragment.getTag()).commit();
 
         } else if (id == R.id.nav_devices) {
+            DevicesFragment devicesFragment = new DevicesFragment();
+            FragmentManager manager = getSupportFragmentManager();
+            manager.beginTransaction().replace(R.id.main_layout, devicesFragment, devicesFragment.getTag()).commit();
 
         } else if (id == R.id.nav_help) {
 
@@ -122,31 +145,24 @@ public class HomeActivity extends AppCompatActivity
 
         } else if (id == R.id.nav_view) {
 
+        } else if (id == R.id.nav_logout)
+        {
+
+            DataBase db = new DataBase(this);
+            if(db.logoutCurrentUser())
+            {
+                SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(this);
+                preferences.edit().remove("isLogged").remove("userID").commit();
+                Intent intent = new Intent(HomeActivity.this,
+                    LoginActivity.class);
+                startActivity(intent);
+                finish();
+            }
         }
 
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
         drawer.closeDrawer(GravityCompat.START);
         return true;
-    }
-
-    @Override
-    public void onConnectionError() {
-
-    }
-
-    @Override
-    public void onConnectionSuccess() {
-
-    }
-
-    @Override
-    public void onConnectionError(Map<String, String> result) {
-
-    }
-
-    @Override
-    public void onConnectionSuccess(Map<String, Object> result) {
-
     }
 
     @Override
