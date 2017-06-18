@@ -68,7 +68,7 @@ public class AppsFragment extends Fragment implements ServerConnectionListener {
             con = new ServerConnection(this, getContext());
         } else {
             throw new RuntimeException(context.toString()
-                    + " must implement OnFragmentInteractionListener");
+                    + " deve implementar OnActivityFragmentsInteractionListener");
         }
     }
 

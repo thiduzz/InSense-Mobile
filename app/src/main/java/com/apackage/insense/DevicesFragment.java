@@ -128,7 +128,7 @@ public class DevicesFragment extends Fragment implements ServerConnectionListene
             con = new ServerConnection(this, getContext());
         } else {
             throw new RuntimeException(context.toString()
-                    + " must implement OnActivityFragmentsInteractionListener");
+                    + " deve implementar OnActivityFragmentsInteractionListener");
         }
     }
 
