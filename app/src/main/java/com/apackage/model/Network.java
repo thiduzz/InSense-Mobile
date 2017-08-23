@@ -6,11 +6,10 @@ package com.apackage.model;
 
 public class Network {
 
-    public static final int CONNECTED = 1;
     public String ssid;
     public String mac;
     public String password;
-    public boolean connected = true;
+    public boolean connected;
 
     public Network(String ssid, String mac) {
         this.ssid = ssid;
@@ -41,7 +40,12 @@ public class Network {
         this.password = password;
     }
 
+    public void setConnected(boolean connected) {
+        this.connected = connected;
+    }
+
     public boolean isConnected() {
         return connected;
     }
+
 }

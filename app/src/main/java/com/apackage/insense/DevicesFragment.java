@@ -15,6 +15,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.support.v4.app.Fragment;
+import android.text.format.Formatter;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -224,7 +225,7 @@ public class DevicesFragment extends Fragment implements ServerConnectionListene
                     }
                 }
                 if (networks.toArray().length == 0){
-                    Toast.makeText(getActivity().getApplicationContext(),"No network available!", Toast.LENGTH_LONG).show();
+                    Toast.makeText(getActivity().getApplicationContext(),"No network available! State: "+ WifiManager.getWifiState()+ " WLANs:"+Wlan_list.toArray().length, Toast.LENGTH_LONG).show();
                 }
             }
         }
@@ -275,6 +276,9 @@ public class DevicesFragment extends Fragment implements ServerConnectionListene
 
         boolean result =  WifiManager.enableNetwork(netId, true);
         WifiManager.saveConfiguration();
+
+        String ip = Formatter.formatIpAddress(WifiManager.getConnectionInfo().getIpAddress());
+
         return result;
     }
 

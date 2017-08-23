@@ -8,6 +8,7 @@ import android.preference.PreferenceManager;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
 import android.support.v4.app.FragmentManager;
+import android.util.Log;
 import android.view.View;
 import android.support.design.widget.NavigationView;
 import android.support.v4.view.GravityCompat;
@@ -28,11 +29,40 @@ import com.apackage.utils.OnActivityFragmentsInteractionListener;
 
 import org.w3c.dom.Text;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.net.ServerSocket;
+import java.net.Socket;
 import java.util.Map;
 
 public class HomeActivity extends AppCompatActivity
         implements NavigationView.OnNavigationItemSelectedListener, OnActivityFragmentsInteractionListener<Object> {
     private int userID;
+
+    private ServerSocket server;
+
+    Runnable conn = new Runnable() {
+        public void run() {
+            try {
+                server = new ServerSocket(53000);
+
+                while (true) {
+                    Socket socket = server.accept();
+                    BufferedReader in = new BufferedReader(
+                            new InputStreamReader(socket.getInputStream()));
+                    String str = in.readLine();
+                    in.close();
+                    socket.close();
+                }
+            } catch (IOException e) {
+                Log.e("SOCKET", e.getMessage());
+            } catch (Exception e) {
+                Log.e("SOCKET", e.getMessage());
+            }
+        }
+    };
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
