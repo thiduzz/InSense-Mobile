@@ -198,7 +198,7 @@ public class DevicesFragment extends Fragment implements ServerConnectionListene
         public void onItemClick(AdapterView<?> av, View v, int position, long arg3) {
 
             Network n = ((Network)av.getAdapter().getItem(position));
-            int Key = 0;
+            int Key = 1;
             if(n != null)
             {
                 String PW = Constants.DEFAULT_PASSWORD_INSENSE_GLASS;
@@ -216,6 +216,7 @@ public class DevicesFragment extends Fragment implements ServerConnectionListene
                 Toast.makeText(getActivity().getApplicationContext(),"The wifi is disabled!", Toast.LENGTH_LONG).show();
             } else {
                 for(int i = 0; i < Wlan_list.size(); i++){
+
                     if(Wlan_list.get(i).SSID.toLowerCase().contains("insense glass"))
                     {
                         networks.add(new Network(Wlan_list.get(i).SSID, Wlan_list.get(i).BSSID));
@@ -244,14 +245,14 @@ public class DevicesFragment extends Fragment implements ServerConnectionListene
         }
 
         tmpConfig = new WifiConfiguration();
-        tmpConfig.BSSID = sBSSID;
-        tmpConfig.SSID = sSSID;
+        tmpConfig.BSSID =  "\"" + sBSSID + "\"";;
+        tmpConfig.SSID = "\"" + sSSID + "\"";
         tmpConfig.priority = 1;
 
         switch(iSecurityType){
             //WPA
             case WPA:
-                tmpConfig.preSharedKey = sSecurityKey;
+                tmpConfig.preSharedKey = "\"" + sSecurityKey + "\"";;
                 break;
             //WEP
             case WEP:
@@ -262,7 +263,14 @@ public class DevicesFragment extends Fragment implements ServerConnectionListene
                 break;
         }
         tmpConfig.status = WifiConfiguration.Status.ENABLED;
-        tmpConfig.allowedAuthAlgorithms.set(WifiConfiguration.AuthAlgorithm.OPEN);
+        tmpConfig.allowedGroupCiphers.set(WifiConfiguration.GroupCipher.TKIP);
+        tmpConfig.allowedGroupCiphers.set(WifiConfiguration.GroupCipher.CCMP);
+        tmpConfig.allowedKeyManagement.set(WifiConfiguration.KeyMgmt.WPA_PSK);
+        tmpConfig.allowedPairwiseCiphers.set(WifiConfiguration.PairwiseCipher.TKIP);
+        tmpConfig.allowedPairwiseCiphers.set(WifiConfiguration.PairwiseCipher.CCMP);
+        tmpConfig.allowedProtocols.set(WifiConfiguration.Protocol.RSN);
+
+
         int netId = WifiManager.addNetwork(tmpConfig);
 
         boolean result =  WifiManager.enableNetwork(netId, true);

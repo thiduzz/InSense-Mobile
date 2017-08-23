@@ -6,7 +6,7 @@ package com.apackage.utils;
 
 public class Constants {
     //Auth
-    public static final String DEFAULT_PASSWORD_INSENSE_GLASS = "X(ey8{Y+6GZNG=B]";
+    public static final String DEFAULT_PASSWORD_INSENSE_GLASS = "vizadvizad";
 
     //Chamadas
     public static final String REQUEST_LOGIN = "login_request";
