@@ -10,13 +10,17 @@
         <RelativeLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content">
+
             <Button
                 android:id="@+id/btnBluetooth"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:maxHeight="16dp"
                 android:layout_weight="1"
-                android:text="Conectar Bluetooth" />
+                android:background="@color/colorRed"
+                android:fontFamily="sans-serif"
+                android:maxHeight="16dp"
+                android:text="Buscar dispositivos"
+                android:textColor="@android:color/white" />
 
         </RelativeLayout>
         <RelativeLayout
@@ -24,26 +28,12 @@
             android:layout_height="wrap_content"
             android:layout_below="@+id/btnBluetooth">
 
-            <EditText
-                android:id="@+id/txtSend"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_alignParentStart="true"
-                android:layout_weight="1"
-                android:textColor="@color/colorRed"
-                android:textColorHint="@color/colorRed"
-                android:ems="10"
-                android:inputType="textPersonName" />
-
-            <Button
-                android:id="@+id/btnSend"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="17dp"
-                android:layout_toEndOf="@+id/txtSend"
-                android:text="Enviar >>" />
-
         </RelativeLayout>
+
+        <ListView
+            android:id="@+id/networkListView"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
 
     </LinearLayout>
 
