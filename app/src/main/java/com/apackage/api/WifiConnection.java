@@ -3,13 +3,19 @@ package com.apackage.api;
 import android.app.Activity;
 import android.os.AsyncTask;
 import android.os.Handler;
+import android.os.Message;
 import android.util.Log;
+
+import com.apackage.model.Network;
+import com.apackage.utils.Constants;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.ConnectException;
+import java.net.InetSocketAddress;
 import java.net.Socket;
 
 /**
@@ -19,7 +25,7 @@ import java.net.Socket;
 public class WifiConnection extends AsyncTask<Void, Void, Void> {
     private String address;
     private int port;
-    String response ="";
+    Message messageResponse = null;
     private Socket socket;
     private boolean connectSocket = false;
     private Handler handlerReceiverClient;
@@ -29,11 +35,11 @@ public class WifiConnection extends AsyncTask<Void, Void, Void> {
     private Activity activity;
 
 
-    public WifiConnection(Activity activity, String address, int port, Handler handlerReceiverClient) {
+    public WifiConnection(Network network, Handler handler) {
         this.activity = activity;
-        this.address = address;
-        this.port = port;
-        this.handlerReceiverClient = handlerReceiverClient;
+        this.address = network.getAddress();
+        this.port = network.getPort();
+        this.handlerReceiverClient = handler;
     }
 
     public boolean isConnectSocket() {
@@ -47,7 +53,8 @@ public class WifiConnection extends AsyncTask<Void, Void, Void> {
     @Override
     protected Void doInBackground(Void... voids) {
         try {
-            socket = new Socket(address, port);
+            socket = new Socket();
+            socket.connect(new InetSocketAddress(address, port), 5000);
             connectSocket = true;
 
             handlerReceiverClient.obtainMessage(1,"Conectado!!!").sendToTarget();
@@ -114,9 +121,12 @@ public class WifiConnection extends AsyncTask<Void, Void, Void> {
                 Log.i("Socket", bData.toString());*/
             }
             
-        }catch (Exception ex){
+        } catch (ConnectException ex){
             ex.printStackTrace();
-            response = ex.getMessage();
+            messageResponse = Message.obtain( handlerReceiverClient, Constants.CONNECTION_ERROR, ex.getMessage() );
+        } catch (Exception ex){
+            ex.printStackTrace();
+            messageResponse = Message.obtain( handlerReceiverClient, Constants.CONNECTION_GENERAL_ERROR, ex.getMessage() );
         }
 
 
@@ -125,8 +135,7 @@ public class WifiConnection extends AsyncTask<Void, Void, Void> {
 
     @Override
     protected void onPostExecute(Void aVoid) {
-        Log.w("onPostExecute", response);
-
+        handlerReceiverClient.sendMessage( messageResponse);
         super.onPostExecute(aVoid);
     }
 

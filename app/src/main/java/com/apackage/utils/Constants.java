@@ -17,4 +17,10 @@ public class Constants {
 
     //Request codes
     public static final int PERMISSION_RC_MAPS = 405;
+
+    public static final String CONNECTION_IP = "192.168.0.101";
+    public static final int CONNECTION_PORT = 3333;
+    //Wifi codes
+    public static final int CONNECTION_GENERAL_ERROR = 1000;
+    public static final int CONNECTION_ERROR = 1010;
 }

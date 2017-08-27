@@ -2,9 +2,11 @@ package com.apackage.insense;
 
 import android.Manifest;
 import android.content.BroadcastReceiver;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.net.wifi.ScanResult;
@@ -14,6 +16,7 @@ import android.net.wifi.WifiManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.IBinder;
 import android.support.v4.app.Fragment;
 import android.text.format.Formatter;
 import android.view.LayoutInflater;
@@ -58,6 +61,7 @@ public class DevicesFragment extends Fragment implements ServerConnectionListene
     ArrayAdapter<String> adapter;
     static WifiManager WifiManager;
     List<ScanResult> Wlan_list;
+    public Handler commHandler;
 
     private NetworkListAdapter adapterNetworks;
     private ArrayList<Network> networks;
@@ -71,8 +75,6 @@ public class DevicesFragment extends Fragment implements ServerConnectionListene
     private OnActivityFragmentsInteractionListener mListener;
 
     StringBuilder sb = new StringBuilder();
-
-    private final Handler handler = new Handler();
 
     public DevicesFragment() {
         // Required empty public constructor
@@ -203,7 +205,21 @@ public class DevicesFragment extends Fragment implements ServerConnectionListene
             if(n != null)
             {
                 String PW = Constants.DEFAULT_PASSWORD_INSENSE_GLASS;
-                conectarDispositivo(n.getMac(), Key, PW, n.getSsid());
+                if(conectarDispositivo(n.getMac(), Key, PW, n.getSsid()) == true){
+                    String ip = Formatter.formatIpAddress(WifiManager.getConnectionInfo().getIpAddress());
+                    String[] split = ip.split(".");
+                    StringBuilder sb = new StringBuilder();
+                    for (int i = 0; i < split.length; i++) {
+                        if (i == split.length - 1) {
+                            sb.append("101");
+                        }else{
+                            sb.append(split[i] + ".");
+                        }
+                    }
+                    n.setAddress("192.168.0.101");
+                    n.setPort(Constants.CONNECTION_PORT);
+                    ((HomeActivity)getActivity()).myService.startWirelessConnection(n);
+                }
             }
         }
     };
@@ -216,6 +232,7 @@ public class DevicesFragment extends Fragment implements ServerConnectionListene
             if (WifiManager.isWifiEnabled() == false){
                 Toast.makeText(getActivity().getApplicationContext(),"The wifi is disabled!", Toast.LENGTH_LONG).show();
             } else {
+                WifiManager.disconnect();
                 for(int i = 0; i < Wlan_list.size(); i++){
 
                     if(Wlan_list.get(i).SSID.toLowerCase().contains("insense glass"))
@@ -276,8 +293,6 @@ public class DevicesFragment extends Fragment implements ServerConnectionListene
 
         boolean result =  WifiManager.enableNetwork(netId, true);
         WifiManager.saveConfiguration();
-
-        String ip = Formatter.formatIpAddress(WifiManager.getConnectionInfo().getIpAddress());
 
         return result;
     }

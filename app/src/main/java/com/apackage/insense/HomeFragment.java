@@ -3,6 +3,7 @@ package com.apackage.insense;
 import android.content.Context;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Handler;
 import android.support.v4.app.Fragment;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -30,6 +31,7 @@ public class HomeFragment extends Fragment implements ServerConnectionListener {
     private DataBase db;
     private ServerConnection con;
     public HomeFragment() {
+        // Required empty public constructor
     }
 
     // TODO: Rename and change types and number of parameters

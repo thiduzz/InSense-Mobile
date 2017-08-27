@@ -1,13 +1,20 @@
 package com.apackage.insense;
 
 import android.app.Fragment;
+import android.content.ComponentName;
+import android.content.Context;
 import android.content.Intent;
+import android.content.ServiceConnection;
 import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.IBinder;
+import android.os.Message;
 import android.preference.PreferenceManager;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
 import android.support.v4.app.FragmentManager;
+import android.telecom.ConnectionService;
 import android.util.Log;
 import android.view.View;
 import android.support.design.widget.NavigationView;
@@ -25,6 +32,7 @@ import com.apackage.api.ServerConnection;
 import com.apackage.api.ServerConnectionListener;
 import com.apackage.db.DataBase;
 import com.apackage.model.User;
+import com.apackage.utils.Constants;
 import com.apackage.utils.OnActivityFragmentsInteractionListener;
 
 import org.w3c.dom.Text;
@@ -37,36 +45,19 @@ import java.net.Socket;
 import java.util.Map;
 
 public class HomeActivity extends AppCompatActivity
-        implements NavigationView.OnNavigationItemSelectedListener, OnActivityFragmentsInteractionListener<Object> {
+        implements NavigationView.OnNavigationItemSelectedListener, OnActivityFragmentsInteractionListener<Object>, CommunicationService.Callbacks{
     private int userID;
-
-    private ServerSocket server;
-
-    Runnable conn = new Runnable() {
-        public void run() {
-            try {
-                server = new ServerSocket(53000);
-
-                while (true) {
-                    Socket socket = server.accept();
-                    BufferedReader in = new BufferedReader(
-                            new InputStreamReader(socket.getInputStream()));
-                    String str = in.readLine();
-                    in.close();
-                    socket.close();
-                }
-            } catch (IOException e) {
-                Log.e("SOCKET", e.getMessage());
-            } catch (Exception e) {
-                Log.e("SOCKET", e.getMessage());
-            }
-        }
-    };
+    public Handler commHandler;
+    Intent serviceIntent;
+    CommunicationService myService;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         userID = getIntent().getExtras().getInt("userID",0);
+        serviceIntent = new Intent(this, CommunicationService.class);
+        startService(serviceIntent); //Starting the service
+        bindService(serviceIntent, mConnection, Context.BIND_AUTO_CREATE); //Binding to the service!
         if(userID > 0)
         {
             setContentView(R.layout.activity_home);
@@ -163,10 +154,9 @@ public class HomeActivity extends AppCompatActivity
             manager.beginTransaction().replace(R.id.main_layout, appsFragment, appsFragment.getTag()).commit();
 
         } else if (id == R.id.nav_devices) {
-            DevicesFragment devicesFragment = new DevicesFragment();
-            FragmentManager manager = getSupportFragmentManager();
-            manager.beginTransaction().replace(R.id.main_layout, devicesFragment, devicesFragment.getTag()).commit();
-
+                DevicesFragment devicesFragment = new DevicesFragment();
+                FragmentManager manager = getSupportFragmentManager();
+                manager.beginTransaction().replace(R.id.main_layout, devicesFragment, devicesFragment.getTag()).commit();
         } else if (id == R.id.nav_help) {
 
         } else if (id == R.id.nav_map) {
@@ -199,7 +189,53 @@ public class HomeActivity extends AppCompatActivity
     }
 
     @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        stopService(new Intent(HomeActivity.this, CommunicationService.class));
+    }
+
+    @Override
     public void onFragmentInteraction(String tag, Object data) {
         Toast.makeText(getApplicationContext(), tag, Toast.LENGTH_LONG).show();
+    }
+
+    final public Handler handlerReceiverClient = new Handler(new Handler.Callback() {
+        @Override
+        public boolean handleMessage(Message message) {
+            switch (message.what)
+            {
+                case Constants.CONNECTION_ERROR:
+                    Toast.makeText(getApplicationContext(),(String)message.obj, Toast.LENGTH_LONG).show();
+                    break;
+                case Constants.CONNECTION_GENERAL_ERROR:
+                    Toast.makeText(getApplicationContext(),(String)message.obj, Toast.LENGTH_LONG).show();
+                    break;
+            }
+            return false;
+        }
+    });
+
+
+    private ServiceConnection mConnection = new ServiceConnection() {
+
+        @Override
+        public void onServiceConnected(ComponentName className,
+                                       IBinder service) {
+            Toast.makeText(HomeActivity.this, "onServiceConnected called", Toast.LENGTH_SHORT).show();
+            // We've binded to LocalService, cast the IBinder and get LocalService instance
+            CommunicationService.LocalBinder binder = (CommunicationService.LocalBinder) service;
+            myService = binder.getServiceInstance(); //Get instance of your service!
+            myService.registerClient(HomeActivity.this); //Activity register in the service as client for callabcks!
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName arg0) {
+            Toast.makeText(HomeActivity.this, "onServiceDisconnected called", Toast.LENGTH_SHORT).show();
+        }
+    };
+
+    @Override
+    public void startCommunication(long data) {
+
     }
 }

@@ -1,19 +1,47 @@
 package com.apackage.model;
 
+import android.os.Handler;
+
+import java.io.Serializable;
+
 /**
  * Created by thidu on 8/22/2017.
  */
 
-public class Network {
+public class Network implements Serializable{
 
     public String ssid;
     public String mac;
     public String password;
+    public String address;
+    public int port;
     public boolean connected;
+
+    public String getAddress() {
+        return address;
+    }
+
+    public void setAddress(String address) {
+        this.address = address;
+    }
+
+    public int getPort() {
+        return port;
+    }
+
+    public void setPort(int port) {
+        this.port = port;
+    }
 
     public Network(String ssid, String mac) {
         this.ssid = ssid;
         this.mac = mac;
+    }
+
+    public Network(String address, int port)
+    {
+        this.address = address;
+        this.port = port;
     }
 
     public String getMac() {
