@@ -32,6 +32,8 @@ public class Network implements Serializable{
     public void setPort(int port) {
         this.port = port;
     }
+    public Network() {
+    }
 
     public Network(String ssid, String mac) {
         this.ssid = ssid;

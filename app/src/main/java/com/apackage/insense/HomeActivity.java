@@ -6,6 +6,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.content.SharedPreferences;
+import android.net.wifi.WifiManager;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
@@ -58,12 +59,14 @@ public class HomeActivity extends AppCompatActivity
         serviceIntent = new Intent(this, CommunicationService.class);
         startService(serviceIntent); //Starting the service
         bindService(serviceIntent, mConnection, Context.BIND_AUTO_CREATE); //Binding to the service!
+
         if(userID > 0)
         {
             setContentView(R.layout.activity_home);
             Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
             setSupportActionBar(toolbar);
 
+            /**
             FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
             fab.setOnClickListener(new View.OnClickListener() {
                 @Override
@@ -72,7 +75,7 @@ public class HomeActivity extends AppCompatActivity
                             .setAction("Action", null).show();
                 }
             });
-
+            **/
             DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
             ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(
                     this, drawer, toolbar, R.string.navigation_drawer_open, R.string.navigation_drawer_close);
@@ -210,6 +213,15 @@ public class HomeActivity extends AppCompatActivity
                 case Constants.CONNECTION_GENERAL_ERROR:
                     Toast.makeText(getApplicationContext(),(String)message.obj, Toast.LENGTH_LONG).show();
                     break;
+                case Constants.HOTSPOT_DEVICE_FOUND:
+
+                    final DataBase db = new DataBase(getApplicationContext());
+                    db.saveOrUpdateSetting(db.getActiveUser(),"CONNECTED_IP", (String)message.obj);
+                    Toast.makeText(getApplicationContext(),"IP:"+(String)message.obj, Toast.LENGTH_LONG).show();
+                    break;
+                case Constants.HOTSPOT_GENERAL_ERROR:
+                    Toast.makeText(getApplicationContext(),(String)message.obj, Toast.LENGTH_LONG).show();
+                    break;
             }
             return false;
         }
@@ -226,6 +238,7 @@ public class HomeActivity extends AppCompatActivity
             CommunicationService.LocalBinder binder = (CommunicationService.LocalBinder) service;
             myService = binder.getServiceInstance(); //Get instance of your service!
             myService.registerClient(HomeActivity.this); //Activity register in the service as client for callabcks!
+            myService.startHotspotCheck();
         }
 
         @Override

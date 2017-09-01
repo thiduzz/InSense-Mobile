@@ -19,7 +19,6 @@ public class DataBase extends SQLiteOpenHelper {
 
     private static int VERSAO_TABELA = 1;
     private static String NOME_TABELA_USERS = "USERS";
-    private static String NOME_TABELA_DEVICES = "DEVICES";
     private static String NOME_TABELA_SETTINGS = "SETTINGS";
 
     private static String COLUNA_ID = "ID";
@@ -29,7 +28,7 @@ public class DataBase extends SQLiteOpenHelper {
     private static String COLUNA_TOKEN = "ACCESS_TOKEN";
     private static String COLUNA_REFRESH_TOKEN = "REFRESH_TOKEN";
     private static String COLUNA_ACTIVE_USER = "ACTIVE";
-    private static String COLUNA_MODEL = "MODEL";
+    private static String COLUNA_CONNECTED = "CONNECTED";
     private static String COLUNA_OPTION = "OPTION";
     private static String COLUNA_OPTION_VALUE = "OPTION_VALUE";
 
@@ -39,19 +38,12 @@ public class DataBase extends SQLiteOpenHelper {
                     COLUNA_LOGIN + " TEXT, " +
                     COLUNA_NAME + " TEXT, " +
                     COLUNA_TOKEN + " TEXT, " +
+                    COLUNA_CONNECTED + " BOOLEAN NOT NULL DEFAULT 0 CHECK ("+COLUNA_CONNECTED+" IN (0,1)), " +
                     COLUNA_ACTIVE_USER + " BOOLEAN NOT NULL DEFAULT 0 CHECK ("+COLUNA_ACTIVE_USER+" IN (0,1)), " +
                     COLUNA_REFRESH_TOKEN + " TEXT );";
 
-    private static final String CREATE_DEVICES_TABLE_QUERY =
-            "CREATE TABLE IF NOT EXISTS " + NOME_TABELA_DEVICES + " (" +
-                    COLUNA_ID + " INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
-                    COLUNA_MODEL + " TEXT, " +
-                    COLUNA_FK_USER + " INTEGER,"+
-                    " FOREIGN KEY ("+COLUNA_FK_USER+") REFERENCES "+NOME_TABELA_USERS+"("+COLUNA_ID+")"+
-                    ");";
-
     private static final String CREATE_SETTINGS_TABLE_QUERY =
-            "CREATE TABLE IF NOT EXISTS " + NOME_TABELA_DEVICES + " (" +
+            "CREATE TABLE IF NOT EXISTS " + NOME_TABELA_SETTINGS + " (" +
                     COLUNA_ID + " INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
                     COLUNA_OPTION + " TEXT, " +
                     COLUNA_OPTION_VALUE + " TEXT, " +
@@ -74,7 +66,6 @@ public class DataBase extends SQLiteOpenHelper {
     public void onCreate(SQLiteDatabase db) {
         db.execSQL(CREATE_TABLE_QUERY);
         db.execSQL(CREATE_SETTINGS_TABLE_QUERY);
-        db.execSQL(CREATE_DEVICES_TABLE_QUERY);
     }
 
     @Override
@@ -139,6 +130,17 @@ public class DataBase extends SQLiteOpenHelper {
         return false;
     }
 
+    public boolean isActiveUserConnected(int id)
+    {
+        SQLiteDatabase db = getReadableDatabase();
+        Cursor cursor = db.query(NOME_TABELA_USERS, new String[]{COLUNA_ID},  COLUNA_ID+" = ? and "+COLUNA_ACTIVE_USER+" = 1 and "+COLUNA_CONNECTED + "= 1",new String[]{Integer.toString(id)},null,null,null);
+        if(cursor.getCount() > 0)
+        {
+            return true;
+        }
+        return false;
+    }
+
     public boolean isActiveUser(int id)
     {
         SQLiteDatabase db = getReadableDatabase();
@@ -169,6 +171,15 @@ public class DataBase extends SQLiteOpenHelper {
         values.put(COLUNA_NAME, user.getName());
         values.put(COLUNA_TOKEN, user.getToken());
         values.put(COLUNA_REFRESH_TOKEN, user.getRefreshToken());
+        int result = db.update(NOME_TABELA_USERS, values, COLUNA_ID +" = '"+ user.getId() + "'", null);
+        return result;
+    }
+
+    public int changeDeviceConnectionStatus(User user, boolean connected)
+    {
+        SQLiteDatabase db = getWritableDatabase();
+        ContentValues values = new ContentValues();
+        values.put(COLUNA_CONNECTED, connected);
         int result = db.update(NOME_TABELA_USERS, values, COLUNA_ID +" = '"+ user.getId() + "'", null);
         return result;
     }
@@ -204,6 +215,63 @@ public class DataBase extends SQLiteOpenHelper {
             int authResult = authenticate(user.getId());
             return insertResult > 0 && authResult > 0 ? insertResult : 0;
         }
+    }
+
+
+    public int saveOrUpdateSetting(User user, String key, String value)
+    {
+        if(find(user))
+        {
+            if(getSetting(user, key) != "NULL")
+            {
+               return updateSetting(user,key,value);
+            }else{
+               return saveSetting(user,key,value);
+            }
+        }
+        return 0;
+    }
+
+    private int saveSetting(User user, String key, String value) {
+        SQLiteDatabase db = getWritableDatabase();
+        ContentValues values = new ContentValues();
+        values.put(COLUNA_OPTION, key);
+        values.put(COLUNA_OPTION_VALUE, value);
+        values.put(COLUNA_FK_USER, user.getId());
+        return (int) db.insert(NOME_TABELA_SETTINGS,null,values);
+    }
+
+    private int updateSetting(User user, String key, String value) {
+        SQLiteDatabase db = getWritableDatabase();
+        ContentValues values = new ContentValues();
+        values.put(COLUNA_OPTION_VALUE, value);
+        return db.update(NOME_TABELA_SETTINGS, values, COLUNA_FK_USER +" = '"+ user + "' and "+COLUNA_OPTION+ " = '"+key+"'", null);
+    }
+
+    public String getSetting(User user, String key)
+    {
+        if(find(user))
+        {
+            SQLiteDatabase db = getReadableDatabase();
+            Cursor cursor = db.query(NOME_TABELA_SETTINGS, null,  COLUNA_FK_USER+" = ? and "+ COLUNA_OPTION + " = ?",new String[]{Integer.toString(user.getId()), key},null,null,null);
+            try {
+                if(cursor.getCount() > 0)
+                {
+                    cursor.moveToFirst();
+                    String setting = cursor.getString(
+                            cursor.getColumnIndexOrThrow(COLUNA_OPTION_VALUE));
+                    return setting;
+                }
+                return "NULL";
+            }catch (Exception e)
+            {
+                Toast.makeText(this.context.getApplicationContext(), e.getMessage(), Toast.LENGTH_LONG).show();
+            }finally {
+                cursor.close();
+            }
+            return null;
+        }
+        return "NULL";
     }
 
 

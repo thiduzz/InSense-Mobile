@@ -3,6 +3,7 @@ package com.apackage.insense;
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.annotation.TargetApi;
+import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.preference.PreferenceManager;
@@ -54,6 +55,8 @@ public class LoginActivity extends AppCompatActivity implements ServerConnection
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         final DataBase db = new DataBase(this);
+        //db.close();
+        //getApplicationContext().deleteDatabase("USERS");
 
         // Get the app's shared preferences
         SharedPreferences preferences =

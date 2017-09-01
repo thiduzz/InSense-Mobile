@@ -4,9 +4,11 @@ import android.Manifest;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.net.wifi.ScanResult;
@@ -17,7 +19,10 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
+import android.preference.PreferenceManager;
 import android.support.v4.app.Fragment;
+import android.support.v7.app.AlertDialog;
+import android.text.InputType;
 import android.text.format.Formatter;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -26,7 +31,9 @@ import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageView;
 import android.widget.ListView;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.apackage.model.Network;
@@ -34,6 +41,7 @@ import com.apackage.model.Network;
 import com.apackage.api.ServerConnection;
 import com.apackage.api.ServerConnectionListener;
 import com.apackage.db.DataBase;
+import com.apackage.model.User;
 import com.apackage.utils.Constants;
 import com.apackage.utils.NetworkListAdapter;
 import com.apackage.utils.OnActivityFragmentsInteractionListener;
@@ -90,13 +98,24 @@ public class DevicesFragment extends Fragment implements ServerConnectionListene
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        WifiManager = (WifiManager)getActivity().getApplicationContext().getSystemService(Context.WIFI_SERVICE);
 
 
-            IntentFilter filter = new IntentFilter(android.net.wifi.WifiManager.SCAN_RESULTS_AVAILABLE_ACTION);
-            getActivity().registerReceiver(Wifi, filter);
-
-
+        /**
+        String ip = Formatter.formatIpAddress(WifiManager.getConnectionInfo().getIpAddress());
+        String[] split = ip.split(".");
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < split.length; i++) {
+            if (i == split.length - 1) {
+                sb.append("1");
+            }else{
+                sb.append(split[i] + ".");
+            }
+        }
+        Network n = new Network();
+        n.setAddress("192.168.4.1");
+        n.setPort(Constants.CONNECTION_PORT);
+        ((HomeActivity)getActivity()).myService.startWirelessConnection(n);
+         **/
     }
 
     @Override
@@ -105,7 +124,7 @@ public class DevicesFragment extends Fragment implements ServerConnectionListene
         if (requestCode == PERMISSIONS_REQUEST_CODE_ACCESS_COARSE_LOCATION
                 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
             // Do something with granted permission
-            Discovery();
+
         }
     }
 
@@ -114,23 +133,40 @@ public class DevicesFragment extends Fragment implements ServerConnectionListene
                              Bundle savedInstanceState) {
         // Inflate the layout for this fragment
         View v = inflater.inflate(R.layout.fragment_devices, container, false);
-        listView = (ListView) v.findViewById(R.id.networkListView);
-        networks = new ArrayList<Network>();
-        adapterNetworks = new NetworkListAdapter(networks, getActivity().getApplicationContext());
-        listView.setAdapter(adapterNetworks);
-        listView.setOnItemClickListener(Net);
-        //Scan
-        Button btn_scan = (Button)v.findViewById(R.id.btnBluetooth);
-        btn_scan.setOnClickListener(new View.OnClickListener(){
+
+        SharedPreferences preferences =
+                PreferenceManager.getDefaultSharedPreferences(getActivity());
+        User user = db.getActiveUser();
+        ImageView imgConex = (ImageView) v.findViewById(R.id.connectionImg);
+        TextView textConex = (TextView) v.findViewById(R.id.connectionText);
+        if(user.getId() > 0)
+        {
+            if(db.isActiveUserConnected(user.getId()))
+            {
+                //connected
+                imgConex.setBackground(getResources().getDrawable(R.drawable.connected_icon));
+                textConex.setText("Conectado");
+
+            }else{
+                //not connected
+                imgConex.setBackground(getResources().getDrawable(R.drawable.disconnected_icon));
+                textConex.setText("Desconectado");
+            }
+        }else{
+            //not connected
+            imgConex.setBackground(getResources().getDrawable(R.drawable.disconnected_icon));
+            textConex.setText("Desconectado");
+        }
+
+        /**
+        Button btn_change_credentials = (Button)v.findViewById(R.id.btnChangeCredentials);
+        btn_change_credentials.setOnClickListener(new View.OnClickListener(){
             public void onClick(View v) {
-                if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && getActivity().checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED){
-                    requestPermissions(new String[]{Manifest.permission.ACCESS_COARSE_LOCATION},
-                            PERMISSIONS_REQUEST_CODE_ACCESS_COARSE_LOCATION);
-                }else{
-                    Discovery();
-                }
+                DevicesFragment.this.constructDialog();
             }
         });
+         **/
+
         return v;
     }
 
@@ -193,108 +229,28 @@ public class DevicesFragment extends Fragment implements ServerConnectionListene
 
     }
 
-    protected void Discovery() {
-        WifiManager.startScan();
-    }
-
-    private AdapterView.OnItemClickListener Net = new AdapterView.OnItemClickListener() {
-        public void onItemClick(AdapterView<?> av, View v, int position, long arg3) {
-
-            Network n = ((Network)av.getAdapter().getItem(position));
-            int Key = 1;
-            if(n != null)
-            {
-                String PW = Constants.DEFAULT_PASSWORD_INSENSE_GLASS;
-                if(conectarDispositivo(n.getMac(), Key, PW, n.getSsid()) == true){
-                    String ip = Formatter.formatIpAddress(WifiManager.getConnectionInfo().getIpAddress());
-                    String[] split = ip.split(".");
-                    StringBuilder sb = new StringBuilder();
-                    for (int i = 0; i < split.length; i++) {
-                        if (i == split.length - 1) {
-                            sb.append("101");
-                        }else{
-                            sb.append(split[i] + ".");
-                        }
-                    }
-                    n.setAddress("192.168.0.101");
-                    n.setPort(Constants.CONNECTION_PORT);
-                    ((HomeActivity)getActivity()).myService.startWirelessConnection(n);
-                }
+    public void constructDialog()
+    {
+        AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
+        builder.setTitle("Altere as Credenciais");
+        View viewInflated = LayoutInflater.from(getContext()).inflate(R.layout.dialog_change_credentials, (ViewGroup) getView(), false);
+        // Set up the input
+        final EditText name = (EditText) viewInflated.findViewById(R.id.newNetworkName);
+        final EditText password = (EditText) viewInflated.findViewById(R.id.newNetworkPassword);
+        builder.setView(viewInflated);
+        builder.setPositiveButton("OK", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                Toast.makeText(getActivity().getApplicationContext(),"Enviando novas credenciais: "+name.getText().toString(),Toast.LENGTH_LONG).show();
             }
-        }
-    };
-
-    private final BroadcastReceiver Wifi = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            networks.clear();
-            Wlan_list = WifiManager.getScanResults();
-            if (WifiManager.isWifiEnabled() == false){
-                Toast.makeText(getActivity().getApplicationContext(),"The wifi is disabled!", Toast.LENGTH_LONG).show();
-            } else {
-                WifiManager.disconnect();
-                for(int i = 0; i < Wlan_list.size(); i++){
-
-                    if(Wlan_list.get(i).SSID.toLowerCase().contains("insense glass"))
-                    {
-                        networks.add(new Network(Wlan_list.get(i).SSID, Wlan_list.get(i).BSSID));
-                        adapterNetworks.notifyDataSetChanged();
-                    }
-                }
-                if (networks.toArray().length == 0){
-                    Toast.makeText(getActivity().getApplicationContext(),"No network available! State: "+ WifiManager.getWifiState()+ " WLANs:"+Wlan_list.toArray().length, Toast.LENGTH_LONG).show();
-                }
+        });
+        builder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                dialog.cancel();
             }
-        }
-    };
-
-    //Verbindung mit gewählten AP aufbauen
-    public static boolean conectarDispositivo(String sBSSID, int iSecurityType, String sSecurityKey, String sSSID){
-
-        WifiConfiguration tmpConfig;
-
-        List <WifiConfiguration> listConfig = WifiManager.getConfiguredNetworks();
-
-        for (int i = 0; i<listConfig.size(); i++){
-            tmpConfig = listConfig.get(i);
-            if (tmpConfig.BSSID != null && tmpConfig.BSSID.equalsIgnoreCase(sBSSID)){
-                return WifiManager.enableNetwork(tmpConfig.networkId, true);
-            }
-        }
-
-        tmpConfig = new WifiConfiguration();
-        tmpConfig.BSSID =  "\"" + sBSSID + "\"";;
-        tmpConfig.SSID = "\"" + sSSID + "\"";
-        tmpConfig.priority = 1;
-
-        switch(iSecurityType){
-            //WPA
-            case WPA:
-                tmpConfig.preSharedKey = "\"" + sSecurityKey + "\"";;
-                break;
-            //WEP
-            case WEP:
-                tmpConfig.wepKeys[0] = sSecurityKey;
-                tmpConfig.wepTxKeyIndex = 0;
-                break;
-            default:
-                break;
-        }
-        tmpConfig.status = WifiConfiguration.Status.ENABLED;
-        tmpConfig.allowedGroupCiphers.set(WifiConfiguration.GroupCipher.TKIP);
-        tmpConfig.allowedGroupCiphers.set(WifiConfiguration.GroupCipher.CCMP);
-        tmpConfig.allowedKeyManagement.set(WifiConfiguration.KeyMgmt.WPA_PSK);
-        tmpConfig.allowedPairwiseCiphers.set(WifiConfiguration.PairwiseCipher.TKIP);
-        tmpConfig.allowedPairwiseCiphers.set(WifiConfiguration.PairwiseCipher.CCMP);
-        tmpConfig.allowedProtocols.set(WifiConfiguration.Protocol.RSN);
-
-
-        int netId = WifiManager.addNetwork(tmpConfig);
-
-        boolean result =  WifiManager.enableNetwork(netId, true);
-        WifiManager.saveConfiguration();
-
-        return result;
+        });
+        builder.show();
     }
 
 }

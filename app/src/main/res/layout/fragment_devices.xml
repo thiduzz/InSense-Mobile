@@ -3,38 +3,122 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     tools:context="com.apackage.insense.DevicesFragment">
-    <LinearLayout
+    <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:orientation="vertical">
         <RelativeLayout
+            android:layout_marginTop="50dp"
+            android:paddingLeft="20dp"
+            android:paddingRight="20dp"
             android:layout_width="match_parent"
+            android:id="@+id/connectionDetailsContainer"
             android:layout_height="wrap_content">
-
-            <Button
-                android:id="@+id/btnBluetooth"
-                android:layout_width="match_parent"
+            <TextView
+                android:id="@+id/connectionHelpText"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:background="@color/colorRed"
-                android:fontFamily="sans-serif"
-                android:maxHeight="16dp"
-                android:text="Buscar dispositivos"
-                android:textColor="@android:color/white" />
+                android:text="Para conectar seu óculos habilite a função Hotspot de seu celular.\n\nUtilize as seguintes credenciais para o hotspot:"/>
 
+            <RelativeLayout
+                android:layout_marginTop="20dp"
+                android:id="@+id/ssidContainer"
+                android:layout_below="@+id/connectionHelpText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:weightSum="1">
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_weight="0.4"
+                        android:layout_height="wrap_content"
+                        android:textColor="@color/colorRed"
+                        android:textSize="16dp"
+                        android:text="Nome da Rede:"/>
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_weight="0.6"
+                        android:layout_height="wrap_content"
+                        android:textColor="@color/colorRed"
+                        android:textSize="16dp"
+                        android:text="insense"/>
+                </LinearLayout>
+            </RelativeLayout>
+            <RelativeLayout
+                android:layout_marginTop="10dp"
+                android:layout_below="@+id/ssidContainer"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:weightSum="1">
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_weight="0.4"
+                        android:layout_height="wrap_content"
+                        android:textColor="@color/colorRed"
+                        android:textSize="16dp"
+                        android:text="Senha da Rede:"/>
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_weight="0.6"
+                        android:layout_height="wrap_content"
+                        android:textColor="@color/colorRed"
+                        android:textSize="16dp"
+                        android:text="vizadvizad"/>
+                </LinearLayout>
+            </RelativeLayout>
         </RelativeLayout>
         <RelativeLayout
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_below="@+id/btnBluetooth">
+            android:layout_below="@id/connectionDetailsContainer"
+            android:layout_height="wrap_content">
+            <LinearLayout
+                android:layout_marginTop="30dp"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:weightSum="1">
 
+                <ImageView
+                    android:id="@+id/connectionImg"
+                    android:layout_marginLeft="20dp"
+                    android:layout_width="30dp"
+                    android:layout_height="30dp"
+                    android:scaleType="fitStart"
+                    android:background="@drawable/disconnected_icon" />
+
+                <RelativeLayout
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="0.7"
+                    android:gravity="center_vertical"
+                    android:paddingTop="5dp">
+
+                    <TextView
+                        android:id="@+id/connectionText"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginLeft="10dp"
+                        android:layout_gravity="center_vertical"
+                        android:singleLine="true"
+                        android:textSize="20dp"
+                        android:text="Desconectado"
+                        android:textColor="@color/colorRed" />
+                </RelativeLayout>
+            </LinearLayout>
         </RelativeLayout>
-
+        <!--
         <ListView
             android:id="@+id/networkListView"
             android:layout_width="match_parent"
             android:layout_height="match_parent" />
-
-    </LinearLayout>
+        -->
+    </RelativeLayout>
 
 </FrameLayout>

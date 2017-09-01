@@ -1,5 +1,9 @@
 package com.apackage.utils;
 
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+
 /**
  * Created by thidu on 16/06/2017.
  */
@@ -23,4 +27,9 @@ public class Constants {
     //Wifi codes
     public static final int CONNECTION_GENERAL_ERROR = 1000;
     public static final int CONNECTION_ERROR = 1010;
+    //Hotspot codes
+    public static final int HOTSPOT_GENERAL_ERROR = 2000;
+    public static final int HOTSPOT_DEVICE_FOUND = 2200;
+    public static final List<String> list =
+            Collections.unmodifiableList(Arrays.asList("60:01:94:41:2f:84"));
 }

@@ -35,10 +35,10 @@ public class WifiConnection extends AsyncTask<Void, Void, Void> {
     private Activity activity;
 
 
-    public WifiConnection(Network network, Handler handler) {
+    public WifiConnection(String address, int port, Handler handler) {
         this.activity = activity;
-        this.address = network.getAddress();
-        this.port = network.getPort();
+        this.address = address;
+        this.port = port;
         this.handlerReceiverClient = handler;
     }
 
@@ -53,22 +53,15 @@ public class WifiConnection extends AsyncTask<Void, Void, Void> {
     @Override
     protected Void doInBackground(Void... voids) {
         try {
-            socket = new Socket();
-            socket.connect(new InetSocketAddress(address, port), 5000);
+            socket = new Socket(address, port);
             connectSocket = true;
-
             handlerReceiverClient.obtainMessage(1,"Conectado!!!").sendToTarget();
-
             InputStream inputStream = null;
             while(!isCancelled() && connectSocket){
-
                 inputStream = socket.getInputStream();
-
                 if (inputStream.available() > 0){
                     byte[] bData = new byte[bufferSize];
                     int bytes = inputStream.read(bData);
-
-
 
                     // 0 = dados gerais
                     // 1 = INI (inicio de transmissão de dados de audio)
@@ -80,7 +73,6 @@ public class WifiConnection extends AsyncTask<Void, Void, Void> {
                             if (initAudio){
                                 bufAudio.write(bData);
                             }
-
                             break;
                         }
                         case 1 : {
@@ -104,20 +96,11 @@ public class WifiConnection extends AsyncTask<Void, Void, Void> {
                             break;
                         }
                     }
-
-
-
                     String readMessage = new String(bData);
-
-
                     Log.i("Recebendo", readMessage);
                 }
-
                 /*DataInputStream data = new DataInputStream(socket.getInputStream());
-
-
                 data.read(bData);
-
                 Log.i("Socket", bData.toString());*/
             }
             
