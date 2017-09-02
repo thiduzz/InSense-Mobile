@@ -245,7 +245,12 @@ public class DataBase extends SQLiteOpenHelper {
         SQLiteDatabase db = getWritableDatabase();
         ContentValues values = new ContentValues();
         values.put(COLUNA_OPTION_VALUE, value);
-        return db.update(NOME_TABELA_SETTINGS, values, COLUNA_FK_USER +" = '"+ user + "' and "+COLUNA_OPTION+ " = '"+key+"'", null);
+        return db.update(NOME_TABELA_SETTINGS, values, COLUNA_FK_USER +" = '"+ user.getId() + "' and "+COLUNA_OPTION+ " = '"+key+"'", null);
+    }
+
+    public boolean deleteSetting(User activeUser, String setting) {
+        SQLiteDatabase db = getWritableDatabase();
+        return db.delete(NOME_TABELA_SETTINGS,COLUNA_FK_USER +" = ? and "+COLUNA_OPTION+ " = ?",new String[]{Integer.toString(activeUser.getId()), setting}) > 0;
     }
 
     public String getSetting(User user, String key)
@@ -304,5 +309,4 @@ public class DataBase extends SQLiteOpenHelper {
         int result = db.update(NOME_TABELA_USERS, resetValues, "", null);
         return result > 0;
     }
-
 }

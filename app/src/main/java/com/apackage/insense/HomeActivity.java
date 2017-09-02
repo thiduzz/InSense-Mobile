@@ -51,9 +51,11 @@ public class HomeActivity extends AppCompatActivity
     private int userID;
     Intent serviceIntent;
     CommunicationService myService;
+    DevicesFragment fragDev;
     public Handler handlerReceiverClient = new Handler(new Handler.Callback() {
         @Override
         public boolean handleMessage(Message message) {
+            final DataBase db = new DataBase(getApplicationContext());
             //NAO COLOCAR BREAKPOINT AQUI SE ESTIVER RODANDO COM O INSTANT RUN!!!!!!!!!!!!
             switch (message.what)
             {
@@ -64,15 +66,61 @@ public class HomeActivity extends AppCompatActivity
                     Toast.makeText(getApplicationContext(),(String)message.obj, Toast.LENGTH_LONG).show();
                     break;
                 case Constants.HOTSPOT_DEVICE_FOUND:
-                    final DataBase db = new DataBase(getApplicationContext());
                     db.saveOrUpdateSetting(db.getActiveUser(),"CONNECTED_IP", (String)message.obj);
                     Toast.makeText(getApplicationContext(),"IP:"+(String)message.obj, Toast.LENGTH_LONG).show();
+                    myService.startWirelessConnection((String)message.obj,Constants.CONNECTION_PORT);
+                    break;
+                case Constants.HOTSPOT_DEVICE_NOTFOUND:
+                    if(db.deleteSetting(db.getActiveUser(),"CONNECTED_IP") == true)
+                    {
+                        Log.i("INSENSE","HOTSPOT WAS CONNECTED BUT DID NOT FOUND THE DEVICE ANYMORE");
+
+                    }else{
+                        Log.i("INSENSE","HOTSPOT COULD NOT FIND ANY DEVICE");
+                    }
+                    db.deleteSetting(db.getActiveUser(),"CONNECTED_IP");
+                    db.changeDeviceConnectionStatus(db.getActiveUser(),false);
+                    disconnectDevice();
                     break;
                 case Constants.HOTSPOT_GENERAL_ERROR:
-                    Toast.makeText(getApplicationContext(),(String)message.obj, Toast.LENGTH_LONG).show();
+                    Log.i("INSENSE","HOTSPOT ERROR:"+ (String) message.obj);
+                    db.deleteSetting(db.getActiveUser(),"CONNECTED_IP");
+                    db.changeDeviceConnectionStatus(db.getActiveUser(),false);
+                    disconnectDevice();
+                    break;
+                case Constants.HOTSPOT_DISABLED:
+                    Log.i("INSENSE","HOTSPOT IS NOT ENABLED ON THE PHONE");
+                    db.deleteSetting(db.getActiveUser(),"CONNECTED_IP");
+                    db.changeDeviceConnectionStatus(db.getActiveUser(),false);
+                    disconnectDevice();
+                    break;
+                case Constants.GLASS_STARTED:
+                    db.changeDeviceConnectionStatus(db.getActiveUser(),true);
+                    fragDev = ((DevicesFragment)getSupportFragmentManager().
+                            findFragmentByTag(Constants.FRAGMENT_DEVICES));
+                    if(fragDev != null && fragDev.isFragmentUIActive())
+                    {
+                        fragDev.changeConnectionStatus(null);
+                    }
+                    Toast.makeText(getApplicationContext(),"INSENSE IS ENABLED!", Toast.LENGTH_LONG).show();
+                    break;
+                case Constants.GLASS_NOT_CONNECTED:
+                    db.deleteSetting(db.getActiveUser(),"CONNECTED_IP");
+                    db.changeDeviceConnectionStatus(db.getActiveUser(),false);
+                    disconnectDevice();
                     break;
             }
             return false;
+        }
+        public void disconnectDevice()
+        {
+            fragDev = ((DevicesFragment)getSupportFragmentManager().
+                    findFragmentByTag(Constants.FRAGMENT_DEVICES));
+            if(fragDev != null && fragDev.isFragmentUIActive())
+            {
+                fragDev.changeConnectionStatus(null);
+            }
+            Toast.makeText(getApplicationContext(),"INSENSE IS DISCONNECTED!", Toast.LENGTH_LONG).show();
         }
     });
 
@@ -173,22 +221,22 @@ public class HomeActivity extends AppCompatActivity
         if (id == R.id.nav_home) {
             HomeFragment homeFragment = new HomeFragment();
             FragmentManager manager = getSupportFragmentManager();
-            manager.beginTransaction().replace(R.id.main_layout, homeFragment, homeFragment.getTag()).commit();
+            manager.beginTransaction().replace(R.id.main_layout, homeFragment, Constants.FRAGMENT_HOME).commit();
         }else if (id == R.id.nav_apps) {
             AppsFragment appsFragment = new AppsFragment();
             FragmentManager manager = getSupportFragmentManager();
-            manager.beginTransaction().replace(R.id.main_layout, appsFragment, appsFragment.getTag()).commit();
+            manager.beginTransaction().replace(R.id.main_layout, appsFragment, Constants.FRAGMENT_APPS).commit();
 
         } else if (id == R.id.nav_devices) {
                 DevicesFragment devicesFragment = new DevicesFragment();
                 FragmentManager manager = getSupportFragmentManager();
-                manager.beginTransaction().replace(R.id.main_layout, devicesFragment, devicesFragment.getTag()).commit();
+                manager.beginTransaction().replace(R.id.main_layout, devicesFragment, Constants.FRAGMENT_DEVICES).commit();
         } else if (id == R.id.nav_help) {
 
         } else if (id == R.id.nav_map) {
             MapFragment mapFragment = new MapFragment();
             FragmentManager manager = getSupportFragmentManager();
-            manager.beginTransaction().replace(R.id.main_layout, mapFragment, mapFragment.getTag()).commit();
+            manager.beginTransaction().replace(R.id.main_layout, mapFragment, Constants.FRAGMENT_MAP).commit();
 
         } else if (id == R.id.nav_settings) {
 

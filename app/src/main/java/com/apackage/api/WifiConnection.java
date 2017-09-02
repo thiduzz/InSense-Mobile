@@ -9,14 +9,21 @@ import android.util.Log;
 import com.apackage.model.Network;
 import com.apackage.utils.Constants;
 
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
+import java.io.PrintWriter;
 import java.net.ConnectException;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.net.SocketException;
 
 /**
  * Created by tschannerl on 20/07/17.
@@ -26,7 +33,7 @@ public class WifiConnection extends AsyncTask<Void, Void, Void> {
     private String address;
     private int port;
     Message messageResponse = null;
-    private Socket socket;
+    public Socket socket;
     private boolean connectSocket = false;
     private Handler handlerReceiverClient;
     private int bufferSize = 255;
@@ -52,11 +59,18 @@ public class WifiConnection extends AsyncTask<Void, Void, Void> {
     @Override
     protected Void doInBackground(Void... voids) {
         try {
-            socket = new Socket(address, port);
-            connectSocket = true;
-            handlerReceiverClient.obtainMessage(1,"Conectado!!!").sendToTarget();
+            if(socket != null && socket.isConnected())
+            {
+                socket.close();
+            }
+            socket = new Socket();
+            socket.connect(new InetSocketAddress(address, port),5000);
             InputStream inputStream = null;
-            while(!isCancelled() && connectSocket){
+            if(!isCancelled())
+            {
+                handlerReceiverClient.obtainMessage(Constants.GLASS_STARTED,null).sendToTarget();
+            }
+            while(!isCancelled() && socket.isConnected() && !socket.isClosed()){
                 inputStream = socket.getInputStream();
                 if (inputStream.available() > 0){
                     byte[] bData = new byte[bufferSize];
@@ -97,12 +111,14 @@ public class WifiConnection extends AsyncTask<Void, Void, Void> {
                     }
                     String readMessage = new String(bData);
                     Log.i("Recebendo", readMessage);
+                }else{
+                    checkStatus();
                 }
                 /*DataInputStream data = new DataInputStream(socket.getInputStream());
                 data.read(bData);
                 Log.i("Socket", bData.toString());*/
             }
-            
+            messageResponse = Message.obtain( handlerReceiverClient, Constants.CONNECTION_ERROR, "Socket was closed or stopped answering");
         } catch (ConnectException ex){
             ex.printStackTrace();
             messageResponse = Message.obtain( handlerReceiverClient, Constants.CONNECTION_ERROR, ex.getMessage() );
@@ -111,8 +127,20 @@ public class WifiConnection extends AsyncTask<Void, Void, Void> {
             messageResponse = Message.obtain( handlerReceiverClient, Constants.CONNECTION_GENERAL_ERROR, ex.getMessage() );
         }
 
-
         return null;
+    }
+
+    private void checkStatus() throws IOException {
+        try {
+            socket.connect(new InetSocketAddress(address, port),5000);
+        }catch (SocketException e) {
+            if(e.getMessage() != "already connected"){
+                socket.close();
+                messageResponse = Message.obtain( handlerReceiverClient, Constants.CONNECTION_GENERAL_ERROR, e.getMessage() );
+            }
+        }catch (Exception e) {
+            messageResponse = Message.obtain( handlerReceiverClient, Constants.CONNECTION_GENERAL_ERROR, e.getMessage() );
+        }
     }
 
     @Override

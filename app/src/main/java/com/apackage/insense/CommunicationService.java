@@ -24,6 +24,7 @@ import com.apackage.model.Network;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
+import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Map;
@@ -66,35 +67,12 @@ public class CommunicationService extends Service implements ServerConnectionLis
     public void onDestroy() {
         Log.e("SERVICO","DESTRUINDO O SERVICO!");
         super.onDestroy();
-        //destroy the connection
-        if(wifi != null)
-        {
-            stopWirelessConnection();
-        }
+        //destroy the connection and kill the socket
+        stopWirelessConnection();
         if(hotspot != null)
         {
             hotspot.cancel(true);
         }
-    }
-
-    @Override
-    public void onConnectionError() {
-
-    }
-
-    @Override
-    public void onConnectionSuccess() {
-
-    }
-
-    @Override
-    public void onConnectionError(Map<String, String> result) {
-
-    }
-
-    @Override
-    public void onConnectionSuccess(Map<String, Object> result) {
-
     }
 
     //returns the instance of the service
@@ -117,7 +95,19 @@ public class CommunicationService extends Service implements ServerConnectionLis
     }
 
     public void stopWirelessConnection(){
-        wifi.cancel(true);
+        try {
+            if(wifi != null)
+            {
+                if(wifi.socket.isConnected())
+                {
+                        wifi.socket.close();
+                }
+                wifi.cancel(true);
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+            Log.e("INSENSE", "FAILED TO CLOSE SOCKET / TERMINATE WIFI CONNECTION");
+        }
         //Toast.makeText(((HomeActivity)activity).getApplicationContext(), "Encerrando conexao com oculos!", Toast.LENGTH_SHORT).show();
     }
 
@@ -139,6 +129,27 @@ public class CommunicationService extends Service implements ServerConnectionLis
                     }
         };
         //a cada 30 seg. roda o check
-        timer.schedule(timerTask, 0, 30000);
+        timer.schedule(timerTask, 0, 60000);
+    }
+
+
+    @Override
+    public void onConnectionError() {
+
+    }
+
+    @Override
+    public void onConnectionSuccess() {
+
+    }
+
+    @Override
+    public void onConnectionError(Map<String, String> result) {
+
+    }
+
+    @Override
+    public void onConnectionSuccess(Map<String, Object> result) {
+
     }
 }

@@ -3,113 +3,127 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     tools:context="com.apackage.insense.DevicesFragment">
+
     <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:orientation="vertical">
+
         <RelativeLayout
+            android:id="@+id/connectionDetailsContainer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
             android:layout_marginTop="50dp"
             android:paddingLeft="20dp"
-            android:paddingRight="20dp"
-            android:layout_width="match_parent"
-            android:id="@+id/connectionDetailsContainer"
-            android:layout_height="wrap_content">
+            android:paddingRight="20dp">
+
             <TextView
                 android:id="@+id/connectionHelpText"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Para conectar seu óculos habilite a função Hotspot de seu celular.\n\nUtilize as seguintes credenciais para o hotspot:"/>
+                android:text="Para conectar seu óculos habilite a função Hotspot de seu celular.\n\nUtilize as seguintes credenciais para o hotspot:" />
 
             <RelativeLayout
-                android:layout_marginTop="20dp"
                 android:id="@+id/ssidContainer"
-                android:layout_below="@+id/connectionHelpText"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content">
+                android:layout_height="wrap_content"
+                android:layout_below="@+id/connectionHelpText"
+                android:layout_marginTop="20dp">
+
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
                     android:weightSum="1">
+
                     <TextView
                         android:layout_width="0dp"
+                        android:layout_height="wrap_content"
                         android:layout_weight="0.4"
-                        android:layout_height="wrap_content"
+                        android:text="Nome da Rede:"
                         android:textColor="@color/colorRed"
-                        android:textSize="16dp"
-                        android:text="Nome da Rede:"/>
+                        android:textSize="16dp" />
+
                     <TextView
                         android:layout_width="0dp"
-                        android:layout_weight="0.6"
                         android:layout_height="wrap_content"
+                        android:layout_weight="0.6"
+                        android:text="insense"
                         android:textColor="@color/colorRed"
-                        android:textSize="16dp"
-                        android:text="insense"/>
+                        android:textSize="16dp" />
                 </LinearLayout>
             </RelativeLayout>
+
             <RelativeLayout
-                android:layout_marginTop="10dp"
-                android:layout_below="@+id/ssidContainer"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content">
+                android:layout_height="wrap_content"
+                android:layout_below="@+id/ssidContainer"
+                android:layout_marginTop="10dp">
+
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
                     android:weightSum="1">
+
                     <TextView
                         android:layout_width="0dp"
+                        android:layout_height="wrap_content"
                         android:layout_weight="0.4"
-                        android:layout_height="wrap_content"
+                        android:text="Senha da Rede:"
                         android:textColor="@color/colorRed"
-                        android:textSize="16dp"
-                        android:text="Senha da Rede:"/>
+                        android:textSize="16dp" />
+
                     <TextView
                         android:layout_width="0dp"
-                        android:layout_weight="0.6"
                         android:layout_height="wrap_content"
+                        android:layout_weight="0.6"
+                        android:text="vizadvizad"
                         android:textColor="@color/colorRed"
-                        android:textSize="16dp"
-                        android:text="vizadvizad"/>
+                        android:textSize="16dp" />
                 </LinearLayout>
             </RelativeLayout>
         </RelativeLayout>
+
         <RelativeLayout
             android:layout_width="match_parent"
-            android:layout_below="@id/connectionDetailsContainer"
-            android:layout_height="wrap_content">
+            android:layout_height="wrap_content"
+            android:layout_below="@id/connectionDetailsContainer">
+
             <LinearLayout
-                android:layout_marginTop="30dp"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:layout_gravity="center_vertical"
+                android:layout_marginTop="30dp"
+                android:gravity="center_vertical"
                 android:orientation="horizontal"
                 android:weightSum="1">
 
                 <ImageView
                     android:id="@+id/connectionImg"
-                    android:layout_marginLeft="20dp"
                     android:layout_width="30dp"
                     android:layout_height="30dp"
-                    android:scaleType="fitStart"
-                    android:background="@drawable/disconnected_icon" />
+                    android:layout_marginLeft="20dp"
+                    android:background="@drawable/disconnected_icon"
+                    android:scaleType="fitStart" />
 
                 <RelativeLayout
                     android:layout_width="0dp"
                     android:layout_height="match_parent"
-                    android:layout_weight="0.7"
-                    android:gravity="center_vertical"
-                    android:paddingTop="5dp">
+                    android:layout_gravity="center_vertical"
+                    android:layout_weight="0.7">
 
                     <TextView
                         android:id="@+id/connectionText"
                         android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginLeft="10dp"
+                        android:layout_height="match_parent"
                         android:layout_gravity="center_vertical"
+                        android:gravity="center_vertical"
+                        android:layout_marginLeft="10dp"
                         android:singleLine="true"
-                        android:textSize="20dp"
                         android:text="Desconectado"
-                        android:textColor="@color/colorRed" />
+                        android:textColor="@color/colorRed"
+                        android:textSize="20dp" />
                 </RelativeLayout>
             </LinearLayout>
         </RelativeLayout>

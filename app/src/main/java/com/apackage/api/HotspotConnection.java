@@ -28,7 +28,6 @@ import java.net.Socket;
  */
 
 public class HotspotConnection extends AsyncTask<Void, Void, Void> {
-    Message messageResponse = null;
     private Handler handlerReceiverClient;
     WifiManager wifiManager;
 
@@ -44,10 +43,12 @@ public class HotspotConnection extends AsyncTask<Void, Void, Void> {
                 if(this.isWifiApEnabled())
                 {
                     this.trackConnectedClients();
+                }else{
+                    handlerReceiverClient.obtainMessage(Constants.HOTSPOT_DISABLED, null).sendToTarget();
                 }
         } catch (Exception ex){
             ex.printStackTrace();
-            messageResponse = Message.obtain( handlerReceiverClient, Constants.HOTSPOT_GENERAL_ERROR, ex.getMessage() );
+            handlerReceiverClient.obtainMessage(Constants.HOTSPOT_GENERAL_ERROR, ex.getMessage()).sendToTarget();
         }
 
 
@@ -61,6 +62,7 @@ public class HotspotConnection extends AsyncTask<Void, Void, Void> {
         try {
             br = new BufferedReader(new FileReader("/proc/net/arp"));
             String line;
+            boolean found = false;
             while ((line = br.readLine()) != null) {
                 String[] splitted = line.split(" +");
                 if (splitted != null ) {
@@ -69,11 +71,19 @@ public class HotspotConnection extends AsyncTask<Void, Void, Void> {
                     if (mac.matches("..:..:..:..:..:..")) {
                         macCount++;
                         Log.i("HOTSPOT","Mac : " + mac + " IP Address : " + splitted[0]);
-                        handlerReceiverClient.obtainMessage(Constants.HOTSPOT_DEVICE_FOUND, splitted[0]).sendToTarget();
+                        if(Constants.REGISTERED_IMACS.contains(mac.toString()))
+                        {
+                            found = true;
+                            handlerReceiverClient.obtainMessage(Constants.HOTSPOT_DEVICE_FOUND, splitted[0]).sendToTarget();
+                        }
                         //Log.i("HOTSPOT","Mac_Count  " + macCount + " MAC_ADDRESS  " + mac);
 
                     }
                 }
+            }
+            if(!found)
+            {
+                handlerReceiverClient.obtainMessage(Constants.HOTSPOT_DEVICE_NOTFOUND, null).sendToTarget();
             }
         } catch(Exception e) {
             Log.e("INSENSE","ERRO NA CLASSE HOTSPOT CONNECTION: "+ e.getMessage());

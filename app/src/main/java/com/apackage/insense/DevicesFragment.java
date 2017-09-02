@@ -62,27 +62,9 @@ import java.util.Map;
 public class DevicesFragment extends Fragment implements ServerConnectionListener {
 
     private static final int PERMISSIONS_REQUEST_CODE_ACCESS_COARSE_LOCATION = 10010;
-    private Button btnBluetooth;
-    private EditText txtSend;
-    private Button btnSend;
-    ListView listView;
-    ArrayAdapter<String> adapter;
-    static WifiManager WifiManager;
-    List<ScanResult> Wlan_list;
-    public Handler commHandler;
-
-    private NetworkListAdapter adapterNetworks;
-    private ArrayList<Network> networks;
-
-    public static final int WPA = 1;
-    public static final int WEP = 2;
-
     private DataBase db;
     private ServerConnection con;
-
     private OnActivityFragmentsInteractionListener mListener;
-
-    StringBuilder sb = new StringBuilder();
 
     public DevicesFragment() {
         // Required empty public constructor
@@ -97,25 +79,6 @@ public class DevicesFragment extends Fragment implements ServerConnectionListene
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
-
-
-        /**
-        String ip = Formatter.formatIpAddress(WifiManager.getConnectionInfo().getIpAddress());
-        String[] split = ip.split(".");
-        StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < split.length; i++) {
-            if (i == split.length - 1) {
-                sb.append("1");
-            }else{
-                sb.append(split[i] + ".");
-            }
-        }
-        Network n = new Network();
-        n.setAddress("192.168.4.1");
-        n.setPort(Constants.CONNECTION_PORT);
-        ((HomeActivity)getActivity()).myService.startWirelessConnection(n);
-         **/
     }
 
     @Override
@@ -133,31 +96,7 @@ public class DevicesFragment extends Fragment implements ServerConnectionListene
                              Bundle savedInstanceState) {
         // Inflate the layout for this fragment
         View v = inflater.inflate(R.layout.fragment_devices, container, false);
-
-        SharedPreferences preferences =
-                PreferenceManager.getDefaultSharedPreferences(getActivity());
-        User user = db.getActiveUser();
-        ImageView imgConex = (ImageView) v.findViewById(R.id.connectionImg);
-        TextView textConex = (TextView) v.findViewById(R.id.connectionText);
-        if(user.getId() > 0)
-        {
-            if(db.isActiveUserConnected(user.getId()))
-            {
-                //connected
-                imgConex.setBackground(getResources().getDrawable(R.drawable.connected_icon));
-                textConex.setText("Conectado");
-
-            }else{
-                //not connected
-                imgConex.setBackground(getResources().getDrawable(R.drawable.disconnected_icon));
-                textConex.setText("Desconectado");
-            }
-        }else{
-            //not connected
-            imgConex.setBackground(getResources().getDrawable(R.drawable.disconnected_icon));
-            textConex.setText("Desconectado");
-        }
-
+        changeConnectionStatus(v);
         /**
         Button btn_change_credentials = (Button)v.findViewById(R.id.btnChangeCredentials);
         btn_change_credentials.setOnClickListener(new View.OnClickListener(){
@@ -177,6 +116,39 @@ public class DevicesFragment extends Fragment implements ServerConnectionListene
         }
     }
 
+    public void changeConnectionStatus(View v)
+    {
+        User user = db.getActiveUser();
+        if(v == null)
+        {
+            v = getView();
+        }
+        if(v != null){
+            ImageView imgConex = (ImageView) v.findViewById(R.id.connectionImg);
+            TextView textConex = (TextView) v.findViewById(R.id.connectionText);
+            if(user.getId() > 0)
+            {
+                if(db.isActiveUserConnected(user.getId()))
+                {
+                    //connected
+                    imgConex.setBackground(getResources().getDrawable(R.drawable.connected_icon));
+                    textConex.setText("Conectado");
+                }else{
+                    //not connected
+                    imgConex.setBackground(getResources().getDrawable(R.drawable.disconnected_icon));
+                    textConex.setText("Desconectado");
+                }
+            }else{
+                //not connected
+                imgConex.setBackground(getResources().getDrawable(R.drawable.disconnected_icon));
+                textConex.setText("Desconectado");
+            }
+        }
+    }
+
+    public boolean isFragmentUIActive() {
+        return isAdded() && !isDetached() && !isRemoving();
+    }
 
     @Override
     public void onPause()
