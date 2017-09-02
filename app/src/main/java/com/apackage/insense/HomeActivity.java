@@ -29,6 +29,7 @@ import android.view.MenuItem;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.apackage.api.HotspotConnection;
 import com.apackage.api.ServerConnection;
 import com.apackage.api.ServerConnectionListener;
 import com.apackage.db.DataBase;
@@ -48,9 +49,32 @@ import java.util.Map;
 public class HomeActivity extends AppCompatActivity
         implements NavigationView.OnNavigationItemSelectedListener, OnActivityFragmentsInteractionListener<Object>, CommunicationService.Callbacks{
     private int userID;
-    public Handler commHandler;
     Intent serviceIntent;
     CommunicationService myService;
+    public Handler handlerReceiverClient = new Handler(new Handler.Callback() {
+        @Override
+        public boolean handleMessage(Message message) {
+            //NAO COLOCAR BREAKPOINT AQUI SE ESTIVER RODANDO COM O INSTANT RUN!!!!!!!!!!!!
+            switch (message.what)
+            {
+                case Constants.CONNECTION_ERROR:
+                    Toast.makeText(getApplicationContext(),(String)message.obj, Toast.LENGTH_LONG).show();
+                    break;
+                case Constants.CONNECTION_GENERAL_ERROR:
+                    Toast.makeText(getApplicationContext(),(String)message.obj, Toast.LENGTH_LONG).show();
+                    break;
+                case Constants.HOTSPOT_DEVICE_FOUND:
+                    final DataBase db = new DataBase(getApplicationContext());
+                    db.saveOrUpdateSetting(db.getActiveUser(),"CONNECTED_IP", (String)message.obj);
+                    Toast.makeText(getApplicationContext(),"IP:"+(String)message.obj, Toast.LENGTH_LONG).show();
+                    break;
+                case Constants.HOTSPOT_GENERAL_ERROR:
+                    Toast.makeText(getApplicationContext(),(String)message.obj, Toast.LENGTH_LONG).show();
+                    break;
+            }
+            return false;
+        }
+    });
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -59,7 +83,6 @@ public class HomeActivity extends AppCompatActivity
         serviceIntent = new Intent(this, CommunicationService.class);
         startService(serviceIntent); //Starting the service
         bindService(serviceIntent, mConnection, Context.BIND_AUTO_CREATE); //Binding to the service!
-
         if(userID > 0)
         {
             setContentView(R.layout.activity_home);
@@ -202,48 +225,24 @@ public class HomeActivity extends AppCompatActivity
         Toast.makeText(getApplicationContext(), tag, Toast.LENGTH_LONG).show();
     }
 
-    final public Handler handlerReceiverClient = new Handler(new Handler.Callback() {
-        @Override
-        public boolean handleMessage(Message message) {
-            switch (message.what)
-            {
-                case Constants.CONNECTION_ERROR:
-                    Toast.makeText(getApplicationContext(),(String)message.obj, Toast.LENGTH_LONG).show();
-                    break;
-                case Constants.CONNECTION_GENERAL_ERROR:
-                    Toast.makeText(getApplicationContext(),(String)message.obj, Toast.LENGTH_LONG).show();
-                    break;
-                case Constants.HOTSPOT_DEVICE_FOUND:
-
-                    final DataBase db = new DataBase(getApplicationContext());
-                    db.saveOrUpdateSetting(db.getActiveUser(),"CONNECTED_IP", (String)message.obj);
-                    Toast.makeText(getApplicationContext(),"IP:"+(String)message.obj, Toast.LENGTH_LONG).show();
-                    break;
-                case Constants.HOTSPOT_GENERAL_ERROR:
-                    Toast.makeText(getApplicationContext(),(String)message.obj, Toast.LENGTH_LONG).show();
-                    break;
-            }
-            return false;
-        }
-    });
-
-
     private ServiceConnection mConnection = new ServiceConnection() {
 
         @Override
         public void onServiceConnected(ComponentName className,
                                        IBinder service) {
-            Toast.makeText(HomeActivity.this, "onServiceConnected called", Toast.LENGTH_SHORT).show();
+            Log.i("INSENSE","Serviço de Background iniciado!");
             // We've binded to LocalService, cast the IBinder and get LocalService instance
             CommunicationService.LocalBinder binder = (CommunicationService.LocalBinder) service;
             myService = binder.getServiceInstance(); //Get instance of your service!
+            Log.i("INSENSE","Registrando a atividade cliente no servico Background!");
             myService.registerClient(HomeActivity.this); //Activity register in the service as client for callabcks!
-            myService.startHotspotCheck();
+            myService.startHotspotCheck(handlerReceiverClient);
+
         }
 
         @Override
         public void onServiceDisconnected(ComponentName arg0) {
-            Toast.makeText(HomeActivity.this, "onServiceDisconnected called", Toast.LENGTH_SHORT).show();
+            Log.i("INSENSE","Serviço de Background finalizado!");
         }
     };
 

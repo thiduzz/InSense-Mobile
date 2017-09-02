@@ -27,6 +27,8 @@ import java.io.FileReader;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Map;
+import java.util.Timer;
+import java.util.TimerTask;
 
 /**
  * Created by Thiago Mello on 8/26/2017.
@@ -67,7 +69,7 @@ public class CommunicationService extends Service implements ServerConnectionLis
         //destroy the connection
         if(wifi != null)
         {
-            wifi.cancel(true);
+            stopWirelessConnection();
         }
         if(hotspot != null)
         {
@@ -106,29 +108,37 @@ public class CommunicationService extends Service implements ServerConnectionLis
         this.activity = (Callbacks)activity;
     }
 
-    public void startHotspotCheck()
-    {
-        hotspot = new HotspotConnection(((HomeActivity)activity).handlerReceiverClient, (WifiManager) ((HomeActivity)activity).getApplicationContext().getSystemService(Context.WIFI_SERVICE));
-        hotspot.execute();
-        handler.postDelayed(serviceRunnable, 0);
-        Toast.makeText(((HomeActivity)activity).getApplicationContext(), "Iniciando scan do hotspot!", Toast.LENGTH_SHORT).show();
-    }
-
     public void startWirelessConnection(String address, int port){
         //instantiate connection
         wifi = new WifiConnection(address, port , ((HomeActivity)activity).handlerReceiverClient);
         wifi.execute();
         handler.postDelayed(serviceRunnable, 0);
-        Toast.makeText(((HomeActivity)activity).getApplicationContext(), "Iniciando conexao com oculos!", Toast.LENGTH_SHORT).show();
+        //Toast.makeText(((HomeActivity)activity).getApplicationContext(), "Iniciando conexao com oculos!", Toast.LENGTH_SHORT).show();
     }
 
     public void stopWirelessConnection(){
         wifi.cancel(true);
-        Toast.makeText(((HomeActivity)activity).getApplicationContext(), "Encerrando conexao com oculos!", Toast.LENGTH_SHORT).show();
+        //Toast.makeText(((HomeActivity)activity).getApplicationContext(), "Encerrando conexao com oculos!", Toast.LENGTH_SHORT).show();
     }
 
     //callbacks interface for communication with service clients!
     public interface Callbacks{
         public void startCommunication(long data);
+    }
+
+
+    public void startHotspotCheck(Handler handler)
+    {
+        Timer timer = new Timer();
+        final Handler handlerActivity = handler;
+        TimerTask timerTask = new TimerTask() {
+                    @Override
+                    public void run() {
+                        hotspot = new HotspotConnection(handlerActivity, (WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE));
+                        hotspot.execute();
+                    }
+        };
+        //a cada 30 seg. roda o check
+        timer.schedule(timerTask, 0, 30000);
     }
 }

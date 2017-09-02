@@ -57,6 +57,7 @@ public class LoginActivity extends AppCompatActivity implements ServerConnection
         final DataBase db = new DataBase(this);
         //db.close();
         //getApplicationContext().deleteDatabase("USERS");
+        //getApplicationContext().deleteDatabase("SETTINGS");
 
         // Get the app's shared preferences
         SharedPreferences preferences =
@@ -109,6 +110,10 @@ public class LoginActivity extends AppCompatActivity implements ServerConnection
                     User user = db.getActiveUser();
                     con = new ServerConnection(this, getApplicationContext());
                     con.execute(Constants.REQUEST_VALIDATE_TOKEN, user.getRefreshToken());
+                }else{
+                    showProgress(false);
+                    SharedPreferences.Editor editor = preferences.edit();
+                    editor.remove("userID").remove("isLogged").commit();
                 }
             }else{
                 showProgress(false);

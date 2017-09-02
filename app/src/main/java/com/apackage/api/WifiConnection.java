@@ -36,7 +36,6 @@ public class WifiConnection extends AsyncTask<Void, Void, Void> {
 
 
     public WifiConnection(String address, int port, Handler handler) {
-        this.activity = activity;
         this.address = address;
         this.port = port;
         this.handlerReceiverClient = handler;

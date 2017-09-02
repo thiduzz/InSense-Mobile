@@ -41,13 +41,10 @@ public class HotspotConnection extends AsyncTask<Void, Void, Void> {
     @Override
     protected Void doInBackground(Void... voids) {
         try {
-            while(true){
                 if(this.isWifiApEnabled())
                 {
                     this.trackConnectedClients();
                 }
-            }
-            
         } catch (Exception ex){
             ex.printStackTrace();
             messageResponse = Message.obtain( handlerReceiverClient, Constants.HOTSPOT_GENERAL_ERROR, ex.getMessage() );
@@ -79,7 +76,7 @@ public class HotspotConnection extends AsyncTask<Void, Void, Void> {
                 }
             }
         } catch(Exception e) {
-
+            Log.e("INSENSE","ERRO NA CLASSE HOTSPOT CONNECTION: "+ e.getMessage());
         }
     }
 
@@ -103,7 +100,6 @@ public class HotspotConnection extends AsyncTask<Void, Void, Void> {
 
     @Override
     protected void onPostExecute(Void aVoid) {
-        handlerReceiverClient.sendMessage( messageResponse);
         super.onPostExecute(aVoid);
     }
 }
