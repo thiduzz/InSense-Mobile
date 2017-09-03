@@ -9,13 +9,13 @@ import android.os.Handler;
 import android.os.Message;
 import android.speech.RecognizerIntent;
 import android.speech.SpeechRecognizer;
-import android.util.Base64;
 import android.util.Log;
 
 import com.apackage.model.Network;
 import com.apackage.utils.Constants;
 import com.google.api.client.extensions.android.http.AndroidHttp;
 import com.google.api.client.extensions.android.json.AndroidJsonFactory;
+import com.google.api.client.util.Base64;
 import com.google.api.services.speech.v1beta1.Speech;
 import com.google.api.services.speech.v1beta1.SpeechRequestInitializer;
 import com.google.api.services.speech.v1beta1.model.RecognitionAudio;
@@ -24,10 +24,15 @@ import com.google.api.services.speech.v1beta1.model.SpeechRecognitionResult;
 import com.google.api.services.speech.v1beta1.model.SyncRecognizeRequest;
 import com.google.api.services.speech.v1beta1.model.SyncRecognizeResponse;
 
+import org.apache.commons.io.IOUtils;
+
+import java.io.BufferedInputStream;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -118,33 +123,42 @@ public class WifiConnection extends AsyncTask<Void, Void, Void> {
                         }
                         case 2 : {
                             initAudio = false;
-                            byte[] audioByte = saveFileAudio();
-                            if(audioByte != null)
+                            if(saveFileAudio())
                             {
-                                //TODO: convert to base64 and send to google speech api
-                                String audioEncoded = Base64.encodeToString(audioByte, Base64.DEFAULT);
-                                Speech speechService = new Speech.Builder(
-                                        AndroidHttp.newCompatibleTransport(),
-                                        new AndroidJsonFactory(),
-                                        null
-                                ).setSpeechRequestInitializer(
-                                        new SpeechRequestInitializer(CLOUD_API_KEY))
-                                        .build();
-                                RecognitionConfig recognitionConfig = new RecognitionConfig();
-                                recognitionConfig.setLanguageCode("pt-BR");
-                                RecognitionAudio recognitionAudio = new RecognitionAudio();
-                                recognitionAudio.setContent(audioEncoded);
-                                // Create request
-                                SyncRecognizeRequest request = new SyncRecognizeRequest();
-                                request.setConfig(recognitionConfig);
-                                request.setAudio(recognitionAudio);
-                                SyncRecognizeResponse response = speechService.speech()
-                                        .syncrecognize(request)
-                                        .execute();
-                                SpeechRecognitionResult result = response.getResults().get(0);
-                                final String transcript = result.getAlternatives().get(0)
-                                        .getTranscript();
-                                messageResponse = Message.obtain( handlerReceiverClient, Constants.GLASS_AUDIO_RECOGNIZED, transcript);
+                                byte[] audioByte = readFileAudio();
+                                if(bData != null)
+                                {
+
+                                    Log.i("INSENSE","INICIANDO INTERPRETACAO 1");
+                                    String audioEncoded = Base64.encodeBase64String(audioByte);
+                                    Log.i("INSENSE","INICIANDO INTERPRETACAO 2");
+                                    Speech speechService = new Speech.Builder(
+                                            AndroidHttp.newCompatibleTransport(),
+                                            new AndroidJsonFactory(),
+                                            null
+                                    ).setSpeechRequestInitializer(
+                                            new SpeechRequestInitializer(CLOUD_API_KEY))
+                                            .build();
+                                    Log.i("INSENSE","INICIANDO INTERPRETACAO 3");
+                                    RecognitionConfig recognitionConfig = new RecognitionConfig();
+                                    recognitionConfig.setLanguageCode("pt-BR");
+                                    RecognitionAudio recognitionAudio = new RecognitionAudio();
+                                    recognitionAudio.setContent(audioEncoded);
+                                    Log.i("INSENSE","INICIANDO INTERPRETACAO 4");
+                                    // Create request
+                                    SyncRecognizeRequest request = new SyncRecognizeRequest();
+                                    request.setConfig(recognitionConfig);
+                                    request.setAudio(recognitionAudio);
+                                    Log.i("INSENSE","INICIANDO INTERPRETACAO 5");
+                                    SyncRecognizeResponse response = speechService.speech()
+                                            .syncrecognize(request)
+                                            .execute();
+                                    SpeechRecognitionResult result = response.getResults().get(0);
+                                    Log.i("INSENSE","INICIANDO INTERPRETACAO 6");
+                                    final String transcript = result.getAlternatives().get(0)
+                                            .getTranscript();
+                                    messageResponse = Message.obtain( handlerReceiverClient, Constants.GLASS_AUDIO_RECOGNIZED, transcript);
+                                }
                             }
                             break;
                         }
@@ -215,7 +229,7 @@ public class WifiConnection extends AsyncTask<Void, Void, Void> {
         return ret;
     }
 
-    protected byte[] saveFileAudio(){
+    private boolean saveFileAudio(){
         try{
             if (bufAudio != null) {
                 File file = new File(context.getFilesDir(), Constants.RECORDED_AUDIO_FILE_PATH);
@@ -226,20 +240,45 @@ public class WifiConnection extends AsyncTask<Void, Void, Void> {
                 FileOutputStream fos = new FileOutputStream(new File(context.getFilesDir(), Constants.RECORDED_AUDIO_FILE_PATH),false);
                 //FileOutputStream fos = new FileOutputStream(new File("/sdcard/teste.txt"));
                 bufAudio.writeTo(fos);
-                byte[] audioByte = bufAudio.toByteArray();
                 bufAudio.flush();
                 fos.flush();
                 bufAudio.close();
                 fos.close();
-                handlerReceiverClient.obtainMessage(Constants.GLASS_AUDIO_SAVED,null).sendToTarget();
-                return  audioByte;
+                Log.i("INSENSE","AUDIO SALVO!");
+                //handlerReceiverClient.obtainMessage(Constants.GLASS_AUDIO_SAVED,null).sendToTarget();
+                return  true;
+            }else{
+                return false;
             }
-            return null;
 
 
         }catch (IOException ex){
             ex.printStackTrace();
             Log.i("INSENSE","ERROR WHILE SAVING THE AUDIO FILE!");
+            return false;
+        }
+    }
+
+
+    private byte[] readFileAudio(){
+
+        Log.i("INSENSE","INICIANDO LEITURA 1");
+        File file = new File(context.getFilesDir(), Constants.RECORDED_AUDIO_FILE_PATH);
+        int size = (int) file.length();
+        byte[] bytes = new byte[size];
+        try {
+            BufferedInputStream buf = new BufferedInputStream(new FileInputStream(file));
+            buf.read(bytes, 0, bytes.length);
+            byte[] arr = IOUtils.toByteArray(buf);
+            buf.close();
+            return arr;
+        } catch (FileNotFoundException e) {
+            Log.i("INSENSE","ERROR WHILE READING THE AUDIO FILE!");
+            e.printStackTrace();
+            return null;
+        } catch (IOException e) {
+            Log.i("INSENSE","ERROR WHILE READING THE AUDIO FILE!");
+            e.printStackTrace();
             return null;
         }
     }
