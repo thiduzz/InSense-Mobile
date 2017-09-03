@@ -16,6 +16,7 @@ import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
 import android.support.v4.app.FragmentManager;
 import android.telecom.ConnectionService;
+import android.util.Base64;
 import android.util.Log;
 import android.view.View;
 import android.support.design.widget.NavigationView;
@@ -40,8 +41,10 @@ import com.apackage.utils.OnActivityFragmentsInteractionListener;
 import org.w3c.dom.Text;
 
 import java.io.BufferedReader;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.ObjectOutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.Map;
@@ -61,9 +64,14 @@ public class HomeActivity extends AppCompatActivity
             {
                 case Constants.CONNECTION_ERROR:
                     Toast.makeText(getApplicationContext(),(String)message.obj, Toast.LENGTH_LONG).show();
+                    Log.i("INSENSE", "ERROR CONNECTION! "+ (String)message.obj);
+                    db.deleteSetting(db.getActiveUser(),"CONNECTED_IP");
+                    db.changeDeviceConnectionStatus(db.getActiveUser(),false);
+                    disconnectDevice(false);
                     break;
                 case Constants.CONNECTION_GENERAL_ERROR:
                     Toast.makeText(getApplicationContext(),(String)message.obj, Toast.LENGTH_LONG).show();
+                    Log.i("INSENSE", "ERROR CONNECTION GENERAL! "+ (String)message.obj);
                     break;
                 case Constants.HOTSPOT_DEVICE_FOUND:
                     db.saveOrUpdateSetting(db.getActiveUser(),"CONNECTED_IP", (String)message.obj);
@@ -80,19 +88,19 @@ public class HomeActivity extends AppCompatActivity
                     }
                     db.deleteSetting(db.getActiveUser(),"CONNECTED_IP");
                     db.changeDeviceConnectionStatus(db.getActiveUser(),false);
-                    disconnectDevice();
+                    disconnectDevice(true);
                     break;
                 case Constants.HOTSPOT_GENERAL_ERROR:
                     Log.i("INSENSE","HOTSPOT ERROR:"+ (String) message.obj);
                     db.deleteSetting(db.getActiveUser(),"CONNECTED_IP");
                     db.changeDeviceConnectionStatus(db.getActiveUser(),false);
-                    disconnectDevice();
+                    disconnectDevice(true);
                     break;
                 case Constants.HOTSPOT_DISABLED:
                     Log.i("INSENSE","HOTSPOT IS NOT ENABLED ON THE PHONE");
                     db.deleteSetting(db.getActiveUser(),"CONNECTED_IP");
                     db.changeDeviceConnectionStatus(db.getActiveUser(),false);
-                    disconnectDevice();
+                    disconnectDevice(true);
                     break;
                 case Constants.GLASS_STARTED:
                     db.changeDeviceConnectionStatus(db.getActiveUser(),true);
@@ -107,12 +115,22 @@ public class HomeActivity extends AppCompatActivity
                 case Constants.GLASS_NOT_CONNECTED:
                     db.deleteSetting(db.getActiveUser(),"CONNECTED_IP");
                     db.changeDeviceConnectionStatus(db.getActiveUser(),false);
-                    disconnectDevice();
+                    disconnectDevice(true);
+                    break;
+                case Constants.GLASS_AUDIO_RECORDING:
+                    Log.i("INSENSE","GRAVANDO O AUDIO!");
+                    break;
+                case Constants.GLASS_AUDIO_SAVED:
+                    Log.i("INSENSE","AUDIO GRAVADO, INICIANDO ENVIO PARA O GOOGLE SPEECH API!");
+                    break;
+                case Constants.GLASS_AUDIO_RECOGNIZED:
+                    Toast.makeText(getApplicationContext(),(String)message.obj, Toast.LENGTH_LONG).show();
+                    Log.i("INSENSE", "AUDIO RECOGNIZED IS: "+ (String)message.obj);
                     break;
             }
             return false;
         }
-        public void disconnectDevice()
+        public void disconnectDevice(boolean showToast)
         {
             fragDev = ((DevicesFragment)getSupportFragmentManager().
                     findFragmentByTag(Constants.FRAGMENT_DEVICES));
@@ -120,7 +138,9 @@ public class HomeActivity extends AppCompatActivity
             {
                 fragDev.changeConnectionStatus(null);
             }
-            Toast.makeText(getApplicationContext(),"INSENSE IS DISCONNECTED!", Toast.LENGTH_LONG).show();
+            if(showToast){
+                Toast.makeText(getApplicationContext(),"INSENSE IS DISCONNECTED!", Toast.LENGTH_LONG).show();
+            }
         }
     });
 

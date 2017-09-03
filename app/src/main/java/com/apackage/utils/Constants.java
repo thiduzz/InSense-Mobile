@@ -11,7 +11,6 @@ import java.util.List;
 public class Constants {
     //Auth
     public static final String DEFAULT_PASSWORD_INSENSE_GLASS = "vizadvizad";
-
     //fragment names
     public static final String FRAGMENT_HOME = "HOME_FRAGMENT";
     public static final String FRAGMENT_APPS = "HOME_APPS";
@@ -41,8 +40,14 @@ public class Constants {
 
     //Device codes
     public static final int GLASS_STARTED = 3200;
+    public static final int GLASS_AUDIO_RECORDING = 3201;
+    public static final int GLASS_AUDIO_SAVED = 3202;
+    public static final int GLASS_AUDIO_RECOGNIZED = 3203;
     public static final int GLASS_NOT_CONNECTED = 3400;
 
     public static final List<String> REGISTERED_IMACS =
             Collections.unmodifiableList(Arrays.asList("60:01:94:41:2f:84"));
+
+    //File paths
+    public static final String RECORDED_AUDIO_FILE_PATH = "/recorded.wav";
 }

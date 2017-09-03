@@ -1,13 +1,28 @@
 package com.apackage.api;
 
 import android.app.Activity;
+import android.content.Context;
+import android.content.Intent;
+import android.media.MediaPlayer;
 import android.os.AsyncTask;
 import android.os.Handler;
 import android.os.Message;
+import android.speech.RecognizerIntent;
+import android.speech.SpeechRecognizer;
+import android.util.Base64;
 import android.util.Log;
 
 import com.apackage.model.Network;
 import com.apackage.utils.Constants;
+import com.google.api.client.extensions.android.http.AndroidHttp;
+import com.google.api.client.extensions.android.json.AndroidJsonFactory;
+import com.google.api.services.speech.v1beta1.Speech;
+import com.google.api.services.speech.v1beta1.SpeechRequestInitializer;
+import com.google.api.services.speech.v1beta1.model.RecognitionAudio;
+import com.google.api.services.speech.v1beta1.model.RecognitionConfig;
+import com.google.api.services.speech.v1beta1.model.SpeechRecognitionResult;
+import com.google.api.services.speech.v1beta1.model.SyncRecognizeRequest;
+import com.google.api.services.speech.v1beta1.model.SyncRecognizeResponse;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -17,6 +32,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.ObjectOutputStream;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.net.ConnectException;
@@ -24,6 +40,7 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketException;
+import java.util.Locale;
 
 /**
  * Created by tschannerl on 20/07/17.
@@ -31,6 +48,7 @@ import java.net.SocketException;
 
 public class WifiConnection extends AsyncTask<Void, Void, Void> {
     private String address;
+    private final String CLOUD_API_KEY = "AIzaSyCmWiuCgBSJKWLxRWoNeaJiP4VKRnbexQ8";
     private int port;
     Message messageResponse = null;
     public Socket socket;
@@ -39,13 +57,16 @@ public class WifiConnection extends AsyncTask<Void, Void, Void> {
     private int bufferSize = 255;
     private boolean initAudio = false;
     private ByteArrayOutputStream bufAudio;
-    private Activity activity;
+    private ByteArrayOutputStream bufData;
+    private Context context;
+    private SpeechRecognizer speechRecognizer;
 
 
-    public WifiConnection(String address, int port, Handler handler) {
+    public WifiConnection(String address, int port, Handler handler, Context context) {
         this.address = address;
         this.port = port;
         this.handlerReceiverClient = handler;
+        this.context = context;
     }
 
     public boolean isConnectSocket() {
@@ -83,21 +104,48 @@ public class WifiConnection extends AsyncTask<Void, Void, Void> {
                     // 4 = DIR (dados de direção)
                     switch (findTypeData(bData)){
                         case 0 : {
-                            if (initAudio){
-                                bufAudio.write(bData);
+                            if (initAudio == false){
+                                bufData = new ByteArrayOutputStream();
+                                bufData.write(bData);
                             }
                             break;
                         }
                         case 1 : {
-                            handlerReceiverClient.obtainMessage(1,"Iniciando a gravação do arquivo").sendToTarget();
+                            handlerReceiverClient.obtainMessage(Constants.GLASS_AUDIO_RECORDING,null).sendToTarget();
                             initAudio = true;
                             bufAudio = new ByteArrayOutputStream();
                             break;
                         }
                         case 2 : {
                             initAudio = false;
-                            saveFileAudio();
-
+                            byte[] audioByte = saveFileAudio();
+                            if(audioByte != null)
+                            {
+                                //TODO: convert to base64 and send to google speech api
+                                String audioEncoded = Base64.encodeToString(audioByte, Base64.DEFAULT);
+                                Speech speechService = new Speech.Builder(
+                                        AndroidHttp.newCompatibleTransport(),
+                                        new AndroidJsonFactory(),
+                                        null
+                                ).setSpeechRequestInitializer(
+                                        new SpeechRequestInitializer(CLOUD_API_KEY))
+                                        .build();
+                                RecognitionConfig recognitionConfig = new RecognitionConfig();
+                                recognitionConfig.setLanguageCode("pt-BR");
+                                RecognitionAudio recognitionAudio = new RecognitionAudio();
+                                recognitionAudio.setContent(audioEncoded);
+                                // Create request
+                                SyncRecognizeRequest request = new SyncRecognizeRequest();
+                                request.setConfig(recognitionConfig);
+                                request.setAudio(recognitionAudio);
+                                SyncRecognizeResponse response = speechService.speech()
+                                        .syncrecognize(request)
+                                        .execute();
+                                SpeechRecognitionResult result = response.getResults().get(0);
+                                final String transcript = result.getAlternatives().get(0)
+                                        .getTranscript();
+                                messageResponse = Message.obtain( handlerReceiverClient, Constants.GLASS_AUDIO_RECOGNIZED, transcript);
+                            }
                             break;
                         }
                         case 3 : {
@@ -109,14 +157,10 @@ public class WifiConnection extends AsyncTask<Void, Void, Void> {
                             break;
                         }
                     }
-                    String readMessage = new String(bData);
-                    Log.i("Recebendo", readMessage);
+                    //String readMessage = new String(bData);
                 }else{
                     checkStatus();
                 }
-                /*DataInputStream data = new DataInputStream(socket.getInputStream());
-                data.read(bData);
-                Log.i("Socket", bData.toString());*/
             }
             messageResponse = Message.obtain( handlerReceiverClient, Constants.CONNECTION_ERROR, "Socket was closed or stopped answering");
         } catch (ConnectException ex){
@@ -171,22 +215,32 @@ public class WifiConnection extends AsyncTask<Void, Void, Void> {
         return ret;
     }
 
-    protected void saveFileAudio(){
+    protected byte[] saveFileAudio(){
         try{
             if (bufAudio != null) {
-                FileOutputStream fos = new FileOutputStream(new File("/sdcard/tmp1.wav"));
+                File file = new File(context.getFilesDir(), Constants.RECORDED_AUDIO_FILE_PATH);
+                if(file.exists() && file.canWrite())
+                {
+                    file.delete();
+                }
+                FileOutputStream fos = new FileOutputStream(new File(context.getFilesDir(), Constants.RECORDED_AUDIO_FILE_PATH),false);
                 //FileOutputStream fos = new FileOutputStream(new File("/sdcard/teste.txt"));
                 bufAudio.writeTo(fos);
+                byte[] audioByte = bufAudio.toByteArray();
                 bufAudio.flush();
                 fos.flush();
                 bufAudio.close();
                 fos.close();
-                handlerReceiverClient.obtainMessage(1,"Arquivo Salvo !!!").sendToTarget();
+                handlerReceiverClient.obtainMessage(Constants.GLASS_AUDIO_SAVED,null).sendToTarget();
+                return  audioByte;
             }
+            return null;
 
 
         }catch (IOException ex){
             ex.printStackTrace();
+            Log.i("INSENSE","ERROR WHILE SAVING THE AUDIO FILE!");
+            return null;
         }
     }
 

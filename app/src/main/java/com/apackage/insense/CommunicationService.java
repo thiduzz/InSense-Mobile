@@ -88,7 +88,7 @@ public class CommunicationService extends Service implements ServerConnectionLis
 
     public void startWirelessConnection(String address, int port){
         //instantiate connection
-        wifi = new WifiConnection(address, port , ((HomeActivity)activity).handlerReceiverClient);
+        wifi = new WifiConnection(address, port , ((HomeActivity)activity).handlerReceiverClient, getApplicationContext());
         wifi.execute();
         handler.postDelayed(serviceRunnable, 0);
         //Toast.makeText(((HomeActivity)activity).getApplicationContext(), "Iniciando conexao com oculos!", Toast.LENGTH_SHORT).show();
