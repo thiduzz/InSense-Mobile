@@ -9,7 +9,13 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.content.SharedPreferences;
+import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
+import android.media.AudioFormat;
+import android.media.AudioManager;
+import android.media.AudioTrack;
+import android.media.MediaPlayer;
+import android.media.MediaRecorder;
 import android.net.Uri;
 import android.net.wifi.ScanResult;
 import android.net.wifi.WifiConfiguration;
@@ -17,6 +23,7 @@ import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
 import android.os.Handler;
 import android.os.IBinder;
 import android.preference.PreferenceManager;
@@ -24,6 +31,7 @@ import android.support.v4.app.Fragment;
 import android.support.v7.app.AlertDialog;
 import android.text.InputType;
 import android.text.format.Formatter;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -46,6 +54,10 @@ import com.apackage.utils.Constants;
 import com.apackage.utils.NetworkListAdapter;
 import com.apackage.utils.OnActivityFragmentsInteractionListener;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -97,17 +109,10 @@ public class DevicesFragment extends Fragment implements ServerConnectionListene
         // Inflate the layout for this fragment
         View v = inflater.inflate(R.layout.fragment_devices, container, false);
         changeConnectionStatus(v);
-        /**
-        Button btn_change_credentials = (Button)v.findViewById(R.id.btnChangeCredentials);
-        btn_change_credentials.setOnClickListener(new View.OnClickListener(){
-            public void onClick(View v) {
-                DevicesFragment.this.constructDialog();
-            }
-        });
-         **/
 
         return v;
     }
+
 
     // TODO: Rename method, update argument and hook method into UI event
     public void onButtonPressed(Uri uri) {

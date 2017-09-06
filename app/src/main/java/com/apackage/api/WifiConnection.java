@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.media.MediaPlayer;
+import android.media.MediaRecorder;
 import android.os.AsyncTask;
 import android.os.Handler;
 import android.os.Message;
@@ -15,14 +16,15 @@ import com.apackage.model.Network;
 import com.apackage.utils.Constants;
 import com.google.api.client.extensions.android.http.AndroidHttp;
 import com.google.api.client.extensions.android.json.AndroidJsonFactory;
+import com.google.api.client.googleapis.json.GoogleJsonResponseException;
 import com.google.api.client.util.Base64;
-import com.google.api.services.speech.v1beta1.Speech;
-import com.google.api.services.speech.v1beta1.SpeechRequestInitializer;
-import com.google.api.services.speech.v1beta1.model.RecognitionAudio;
-import com.google.api.services.speech.v1beta1.model.RecognitionConfig;
-import com.google.api.services.speech.v1beta1.model.SpeechRecognitionResult;
-import com.google.api.services.speech.v1beta1.model.SyncRecognizeRequest;
-import com.google.api.services.speech.v1beta1.model.SyncRecognizeResponse;
+import com.google.api.services.speech.v1.Speech;
+import com.google.api.services.speech.v1.SpeechRequestInitializer;
+import com.google.api.services.speech.v1.model.RecognitionAudio;
+import com.google.api.services.speech.v1.model.RecognitionConfig;
+import com.google.api.services.speech.v1.model.RecognizeRequest;
+import com.google.api.services.speech.v1.model.RecognizeResponse;
+import com.google.api.services.speech.v1.model.SpeechRecognitionResult;
 
 import org.apache.commons.io.IOUtils;
 
@@ -45,6 +47,7 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketException;
+import java.util.List;
 import java.util.Locale;
 
 /**
@@ -96,6 +99,7 @@ public class WifiConnection extends AsyncTask<Void, Void, Void> {
             {
                 handlerReceiverClient.obtainMessage(Constants.GLASS_STARTED,null).sendToTarget();
             }
+            handlerReceiverClient.obtainMessage(Constants.GLASS_AUDIO_RECOGNIZED, "Hermannplatz, Berlin").sendToTarget();
             while(!isCancelled() && socket.isConnected() && !socket.isClosed()){
                 inputStream = socket.getInputStream();
                 if (inputStream.available() > 0){
@@ -130,7 +134,7 @@ public class WifiConnection extends AsyncTask<Void, Void, Void> {
                                 {
 
                                     Log.i("INSENSE","INICIANDO INTERPRETACAO 1");
-                                    String audioEncoded = Base64.encodeBase64String(audioByte);
+                                    String audioEncoded = Base64.encodeBase64String(bData);
                                     Log.i("INSENSE","INICIANDO INTERPRETACAO 2");
                                     Speech speechService = new Speech.Builder(
                                             AndroidHttp.newCompatibleTransport(),
@@ -142,21 +146,26 @@ public class WifiConnection extends AsyncTask<Void, Void, Void> {
                                     Log.i("INSENSE","INICIANDO INTERPRETACAO 3");
                                     RecognitionConfig recognitionConfig = new RecognitionConfig();
                                     recognitionConfig.setLanguageCode("pt-BR");
+                                    recognitionConfig.setEncoding("LINEAR16");
+                                    recognitionConfig.setSampleRateHertz(16000);
                                     RecognitionAudio recognitionAudio = new RecognitionAudio();
                                     recognitionAudio.setContent(audioEncoded);
                                     Log.i("INSENSE","INICIANDO INTERPRETACAO 4");
                                     // Create request
-                                    SyncRecognizeRequest request = new SyncRecognizeRequest();
+                                    RecognizeRequest request = new RecognizeRequest();
                                     request.setConfig(recognitionConfig);
                                     request.setAudio(recognitionAudio);
                                     Log.i("INSENSE","INICIANDO INTERPRETACAO 5");
-                                    SyncRecognizeResponse response = speechService.speech()
-                                            .syncrecognize(request)
+                                    RecognizeResponse response = speechService.speech()
+                                            .recognize(request)
                                             .execute();
-                                    SpeechRecognitionResult result = response.getResults().get(0);
+                                     List<SpeechRecognitionResult> result = response.getResults();
                                     Log.i("INSENSE","INICIANDO INTERPRETACAO 6");
+                                    final String transcript = result.get(0).toPrettyString();
+                                    /**
                                     final String transcript = result.getAlternatives().get(0)
                                             .getTranscript();
+                                     **/
                                     messageResponse = Message.obtain( handlerReceiverClient, Constants.GLASS_AUDIO_RECOGNIZED, transcript);
                                 }
                             }
@@ -177,6 +186,10 @@ public class WifiConnection extends AsyncTask<Void, Void, Void> {
                 }
             }
             messageResponse = Message.obtain( handlerReceiverClient, Constants.CONNECTION_ERROR, "Socket was closed or stopped answering");
+        }  catch (GoogleJsonResponseException ex){
+            ex.getStatusCode();
+            ex.printStackTrace();
+            messageResponse = Message.obtain( handlerReceiverClient, Constants.CONNECTION_ERROR, ex.getMessage() );
         } catch (ConnectException ex){
             ex.printStackTrace();
             messageResponse = Message.obtain( handlerReceiverClient, Constants.CONNECTION_ERROR, ex.getMessage() );

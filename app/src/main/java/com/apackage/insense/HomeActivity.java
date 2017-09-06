@@ -6,6 +6,8 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.content.SharedPreferences;
+import android.location.Address;
+import android.location.Geocoder;
 import android.net.wifi.WifiManager;
 import android.os.Bundle;
 import android.os.Handler;
@@ -30,6 +32,13 @@ import android.view.MenuItem;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.akexorcist.googledirection.DirectionCallback;
+import com.akexorcist.googledirection.GoogleDirection;
+import com.akexorcist.googledirection.constant.Language;
+import com.akexorcist.googledirection.constant.TransitMode;
+import com.akexorcist.googledirection.constant.TransportMode;
+import com.akexorcist.googledirection.constant.Unit;
+import com.akexorcist.googledirection.model.Direction;
 import com.apackage.api.HotspotConnection;
 import com.apackage.api.ServerConnection;
 import com.apackage.api.ServerConnectionListener;
@@ -37,6 +46,7 @@ import com.apackage.db.DataBase;
 import com.apackage.model.User;
 import com.apackage.utils.Constants;
 import com.apackage.utils.OnActivityFragmentsInteractionListener;
+import com.google.android.gms.maps.model.LatLng;
 
 import org.w3c.dom.Text;
 
@@ -47,6 +57,8 @@ import java.io.InputStreamReader;
 import java.io.ObjectOutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 public class HomeActivity extends AppCompatActivity
@@ -124,8 +136,37 @@ public class HomeActivity extends AppCompatActivity
                     Log.i("INSENSE","AUDIO GRAVADO, INICIANDO ENVIO PARA O GOOGLE SPEECH API!");
                     break;
                 case Constants.GLASS_AUDIO_RECOGNIZED:
+                    try {
                     Toast.makeText(getApplicationContext(),(String)message.obj, Toast.LENGTH_LONG).show();
                     Log.i("INSENSE", "AUDIO RECOGNIZED IS: "+ (String)message.obj);
+                    Geocoder geo = new Geocoder(getApplicationContext(), Locale.US);
+                    List<Address> results = geo.getFromLocationName((String) message.obj, 3);
+                    GoogleDirection.withServerKey("AIzaSyCmWiuCgBSJKWLxRWoNeaJiP4VKRnbexQ8")
+                            .from(new LatLng(52.473683, 13.423557))
+                            .to(new LatLng(results.get(0).getLatitude(), results.get(0).getLongitude()))
+                            .unit(Unit.METRIC)
+                            .transitMode(TransitMode.TRAIN)
+                            .transitMode(TransitMode.BUS)
+                            .transitMode(TransitMode.SUBWAY)
+                            .transportMode(TransportMode.WALKING)
+                            .language(Language.PORTUGUESE_BRAZIL)
+                            .execute(new DirectionCallback() {
+                                @Override
+                                public void onDirectionSuccess(Direction direction, String rawBody) {
+                                    if(direction.isOK()) {
+                                        // Do something
+                                    }
+                                }
+
+                                @Override
+                                public void onDirectionFailure(Throwable t) {
+                                    // Do something here
+                                }
+                            });
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                        return false;
+                    }
                     break;
             }
             return false;
