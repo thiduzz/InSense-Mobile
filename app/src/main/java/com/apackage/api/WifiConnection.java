@@ -5,6 +5,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.media.MediaPlayer;
 import android.media.MediaRecorder;
+import android.net.wifi.WifiManager;
 import android.os.AsyncTask;
 import android.os.Handler;
 import android.os.Message;
@@ -36,12 +37,15 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.ObjectOutputStream;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.net.ConnectException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
@@ -68,13 +72,15 @@ public class WifiConnection extends AsyncTask<Void, Void, Void> {
     private ByteArrayOutputStream bufData;
     private Context context;
     private SpeechRecognizer speechRecognizer;
+    private WifiManager wifiManager;
 
 
-    public WifiConnection(String address, int port, Handler handler, Context context) {
+    public WifiConnection(String address, int port, Handler handler, Context context, WifiManager wifiManager) {
         this.address = address;
         this.port = port;
         this.handlerReceiverClient = handler;
         this.context = context;
+        this.wifiManager = wifiManager;
     }
 
     public boolean isConnectSocket() {
@@ -101,11 +107,15 @@ public class WifiConnection extends AsyncTask<Void, Void, Void> {
             }
             handlerReceiverClient.obtainMessage(Constants.GLASS_AUDIO_RECOGNIZED, "Hermannplatz, Berlin").sendToTarget();
             while(!isCancelled() && socket.isConnected() && !socket.isClosed()){
+                if(!this.isWifiApEnabled() || !this.hasConnectedClient())
+                {
+                    socket.close();
+                    throw new ConnectException("Socket unexpecetedly closed!");
+                }
                 inputStream = socket.getInputStream();
                 if (inputStream.available() > 0){
                     byte[] bData = new byte[bufferSize];
                     int bytes = inputStream.read(bData);
-
                     // 0 = dados gerais
                     // 1 = INI (inicio de transmissão de dados de audio)
                     // 2 = FIM (fim de transmissão de dados de audio)
@@ -120,6 +130,7 @@ public class WifiConnection extends AsyncTask<Void, Void, Void> {
                             break;
                         }
                         case 1 : {
+                            handlerReceiverClient.obtainMessage(Constants.GLASS_AUDIO_RECOGNIZED, "Wiener Strasse 35, Berlin").sendToTarget();
                             handlerReceiverClient.obtainMessage(Constants.GLASS_AUDIO_RECORDING,null).sendToTarget();
                             initAudio = true;
                             bufAudio = new ByteArrayOutputStream();
@@ -305,5 +316,51 @@ public class WifiConnection extends AsyncTask<Void, Void, Void> {
                 e.printStackTrace();
             }
         }
+    }
+
+
+    public boolean hasConnectedClient(){
+        int macCount = 0;
+        BufferedReader br = null;
+        try {
+            br = new BufferedReader(new FileReader("/proc/net/arp"));
+            String line;
+            boolean found = false;
+            while ((line = br.readLine()) != null) {
+                String[] splitted = line.split(" +");
+                if (splitted != null ) {
+                    String mac = splitted[3];
+                    if (mac.matches("..:..:..:..:..:..")) {
+                        macCount++;
+                        if(Constants.REGISTERED_IMACS.contains(mac.toString()))
+                        {
+                            return true;
+                        }
+                    }
+                }
+            }
+            return false;
+        } catch(Exception e) {
+            Log.e("INSENSE","ERRO NA CLASSE WIFI CONNECTION: "+ e.getMessage());
+            return false;
+        }
+    }
+
+    public boolean isWifiApEnabled() {
+        Method[] wmMethods = wifiManager.getClass().getDeclaredMethods();
+        for (Method method : wmMethods) {
+            if (method.getName().equals("isWifiApEnabled")) {
+                try {
+                    return (boolean) method.invoke(wifiManager);
+                } catch (IllegalArgumentException e) {
+                    e.printStackTrace();
+                } catch (IllegalAccessException e) {
+                    e.printStackTrace();
+                } catch (InvocationTargetException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+        return false;
     }
 }

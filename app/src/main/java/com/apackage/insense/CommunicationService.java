@@ -88,7 +88,7 @@ public class CommunicationService extends Service implements ServerConnectionLis
 
     public void startWirelessConnection(String address, int port){
         //instantiate connection
-        wifi = new WifiConnection(address, port , ((HomeActivity)activity).handlerReceiverClient, getApplicationContext());
+        wifi = new WifiConnection(address, port , ((HomeActivity)activity).handlerReceiverClient, getApplicationContext(), (WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE));
         wifi.execute();
         handler.postDelayed(serviceRunnable, 0);
         //Toast.makeText(((HomeActivity)activity).getApplicationContext(), "Iniciando conexao com oculos!", Toast.LENGTH_SHORT).show();
@@ -129,9 +129,13 @@ public class CommunicationService extends Service implements ServerConnectionLis
                     }
         };
         //a cada 30 seg. roda o check
-        timer.schedule(timerTask, 0, 60000);
+        timer.schedule(timerTask, 0, 30000);
     }
 
+    public void sendDeviceMessage(int code, Object what)
+    {
+
+    }
 
     @Override
     public void onConnectionError() {

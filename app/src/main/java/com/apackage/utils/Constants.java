@@ -44,6 +44,7 @@ public class Constants {
     public static final int GLASS_AUDIO_SAVED = 3202;
     public static final int GLASS_AUDIO_RECOGNIZED = 3203;
     public static final int GLASS_NOT_CONNECTED = 3400;
+    public static final int GLASS_ERROR_CODE = 3500;
 
     public static final List<String> REGISTERED_IMACS =
             Collections.unmodifiableList(Arrays.asList("60:01:94:41:2f:84"));

@@ -47,7 +47,9 @@ import com.apackage.model.User;
 import com.apackage.utils.Constants;
 import com.apackage.utils.OnActivityFragmentsInteractionListener;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.gson.Gson;
 
+import org.json.JSONObject;
 import org.w3c.dom.Text;
 
 import java.io.BufferedReader;
@@ -137,7 +139,6 @@ public class HomeActivity extends AppCompatActivity
                     break;
                 case Constants.GLASS_AUDIO_RECOGNIZED:
                     try {
-                    Toast.makeText(getApplicationContext(),(String)message.obj, Toast.LENGTH_LONG).show();
                     Log.i("INSENSE", "AUDIO RECOGNIZED IS: "+ (String)message.obj);
                     Geocoder geo = new Geocoder(getApplicationContext(), Locale.US);
                     List<Address> results = geo.getFromLocationName((String) message.obj, 3);
@@ -155,16 +156,25 @@ public class HomeActivity extends AppCompatActivity
                                 public void onDirectionSuccess(Direction direction, String rawBody) {
                                     if(direction.isOK()) {
                                         // Do something
+                                        Log.i("INSENSE","SUCCESS TO GET DIRECTIONS");
+                                        db.saveOrUpdateSetting(db.getActiveUser(),"CURRENT_DIRECTION",new Gson().toJson(direction));
+                                        MapFragment mapFragment = (MapFragment) getSupportFragmentManager().findFragmentByTag(Constants.FRAGMENT_MAP);
+                                        if(mapFragment != null && mapFragment.isVisible())
+                                        {
+                                            mapFragment.refreshDirections();
+                                        }
                                     }
                                 }
 
                                 @Override
                                 public void onDirectionFailure(Throwable t) {
-                                    // Do something here
+                                    Log.i("INSENSE","FAILED TO GET DIRECTIONS");
+                                    myService.sendDeviceMessage(Constants.GLASS_ERROR_CODE, t.getMessage());
                                 }
                             });
                     } catch (IOException e) {
-                        e.printStackTrace();
+                        Log.i("INSENSE","FAILED TO GET DIRECTIONS");
+                        myService.sendDeviceMessage(Constants.GLASS_ERROR_CODE, e.getMessage());
                         return false;
                     }
                     break;
@@ -326,6 +336,9 @@ public class HomeActivity extends AppCompatActivity
     @Override
     protected void onDestroy() {
         super.onDestroy();
+
+        DataBase db = new DataBase(this);
+        db.deleteSetting(db.getActiveUser(),"CURRENT_DIRECTION");
         stopService(new Intent(HomeActivity.this, CommunicationService.class));
     }
 
