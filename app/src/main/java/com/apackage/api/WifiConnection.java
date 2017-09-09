@@ -107,6 +107,7 @@ public class WifiConnection extends AsyncTask<Void, Void, Void> {
             }
             handlerReceiverClient.obtainMessage(Constants.GLASS_AUDIO_RECOGNIZED, "Hermannplatz, Berlin").sendToTarget();
             while(!isCancelled() && socket.isConnected() && !socket.isClosed()){
+                //TODO:fazer essa checkagem aqui mesmo, porem fazer uma logica para executar a cada 5seg
                 if(!this.isWifiApEnabled() || !this.hasConnectedClient())
                 {
                     socket.close();

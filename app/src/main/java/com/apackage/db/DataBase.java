@@ -304,7 +304,10 @@ public class DataBase extends SQLiteOpenHelper {
     public boolean logoutCurrentUser()
     {
         SQLiteDatabase db = getWritableDatabase();
-        deleteSetting(getActiveUser(),"CURRENT_DIRECTION");
+        User activeUser = getActiveUser();
+        if (activeUser != null){
+            deleteSetting(activeUser, "CURRENT_DIRECTION");
+        }
         ContentValues resetValues = new ContentValues();
         resetValues.put(COLUNA_ACTIVE_USER, 0);
         int result = db.update(NOME_TABELA_USERS, resetValues, "", null);
