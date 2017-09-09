@@ -443,8 +443,8 @@ public class MapFragment extends Fragment implements PlaceAutoCompleteInterface,
             c.setTag(step);
             stepsBounds.add(c);
         }
-
         setUserLocation();
+        //TODO: executar instrucao do step inicial ( index 0)
     }
 
     private boolean setUserLocation()
@@ -471,6 +471,7 @@ public class MapFragment extends Fragment implements PlaceAutoCompleteInterface,
         if(!stepsBounds.isEmpty())
         {
             int i = 0;
+            Log.i("INSENSE", "Iniciando analise de perimetro");
             for (Circle c : stepsBounds) {
                 float[] distance = new float[2];
                 Location.distanceBetween( currentLoc.latitude, currentLoc.longitude,
@@ -480,11 +481,11 @@ public class MapFragment extends Fragment implements PlaceAutoCompleteInterface,
                 } else {
                     //always get the next instruction, remember to add to reproduce first instruction when starting the navigation
                     //Exception: last circle
-                    if(stepsBounds.size() < i + 1)
+                    if(stepsBounds.size() > i + 1)
                     {
                         Step step = (Step) (stepsBounds.get(i+1).getTag());
                         Toast.makeText(getActivity().getApplicationContext(), step.getHtmlInstruction(), Toast.LENGTH_LONG).show();
-                        break;
+                        Log.i("INSENSE", "Entrou na area!");
                     }
                 }
                 i++;
