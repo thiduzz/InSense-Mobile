@@ -97,7 +97,7 @@ import static android.content.Context.LOCATION_SERVICE;
  * Use the {@link MapFragment#newInstance} factory method to
  * create an instance of this fragment.
  */
-public class MapFragment extends Fragment implements PlaceAutoCompleteInterface, SavedPlaceListener, ServerConnectionListener, OnMapReadyCallback, LocationListener {
+public class MapFragment extends Fragment implements PlaceAutoCompleteInterface, ServerConnectionListener, OnMapReadyCallback, LocationListener {
 
     private OnActivityFragmentsInteractionListener mListener;
     private DataBase db;
@@ -146,6 +146,7 @@ public class MapFragment extends Fragment implements PlaceAutoCompleteInterface,
         }
         if(currentDirection == null)
         {
+            db.saveOrUpdateSetting(db.getActiveUser(),"CURRENT_LOCATION_DESCRIPTION", "Hermannplatz, Berlin");
             getDirections(currentLoc);
         }
         mGoogleApiClient = new GoogleApiClient.Builder(getActivity().getApplicationContext())
@@ -324,6 +325,7 @@ public class MapFragment extends Fragment implements PlaceAutoCompleteInterface,
                 if(mAdapter!=null){
                     mAdapter.clearList();
                 }
+                clearDirections();
             }
         });
 
@@ -350,12 +352,6 @@ public class MapFragment extends Fragment implements PlaceAutoCompleteInterface,
                     mClear.setVisibility(View.GONE);
                     mRecyclerView.setVisibility(View.GONE);
                     mMapView.setVisibility(View.VISIBLE);
-
-                    /**
-                    if (mSavedAdapter != null && mSavedAddressList.size() > 0) {
-                        mRecyclerView.setAdapter(mSavedAdapter);
-                    }
-                    **/
                 }
                 if (!s.toString().equals("") && mGoogleApiClient.isConnected()) {
                     mAdapter.getFilter().filter(s.toString());
@@ -373,6 +369,12 @@ public class MapFragment extends Fragment implements PlaceAutoCompleteInterface,
         });
 
         return v;
+    }
+
+    private void clearDirections() {
+        db.deleteSetting(db.getActiveUser(),"CURRENT_DIRECTION");
+        mMap.clear();
+        setUserLocation();
     }
 
     @Override
@@ -455,7 +457,6 @@ public class MapFragment extends Fragment implements PlaceAutoCompleteInterface,
                 userMarker.remove();
             }
             MarkerOptions markerSetup = new MarkerOptions();
-            markerSetup.title("Eu");
             markerSetup.position(currentLoc);
             userMarker = mMap.addMarker(markerSetup);
             mMap.moveCamera(CameraUpdateFactory.newLatLng(currentLoc));//Moves the camera to users current longitude and latitude
@@ -523,7 +524,8 @@ public class MapFragment extends Fragment implements PlaceAutoCompleteInterface,
         try {
             Geocoder geo = new Geocoder(getActivity().getApplicationContext(), Locale.US);
             List<Address> results = null;
-            results = geo.getFromLocationName("Hermannplatz, Berlin", 3);
+            String destination = db.getSetting(db.getActiveUser(),"CURRENT_LOCATION_DESCRIPTION");
+            results = geo.getFromLocationName((destination == null ? "" : destination), 3);
             GoogleDirection.withServerKey("AIzaSyCmWiuCgBSJKWLxRWoNeaJiP4VKRnbexQ8")
                     .from(currentLoc)
                     .to(new LatLng(results.get(0).getLatitude(), results.get(0).getLongitude()))
@@ -556,47 +558,51 @@ public class MapFragment extends Fragment implements PlaceAutoCompleteInterface,
     public void onPlaceClick(ArrayList<PlaceAutocompleteAdapter.PlaceAutocomplete> mResultList, int position) {
         if(mResultList!=null){
             try {
-                final String placeId = String.valueOf(mResultList.get(position).placeId);
-                        /*
-                             Issue a request to the Places Geo Data API to retrieve a Place object with additional details about the place.
-                         */
 
+                db.saveOrUpdateSetting(db.getActiveUser(),"CURRENT_LOCATION_DESCRIPTION", (String) mResultList.get(position).description);
+                mSearchEdittext.setText((String) mResultList.get(position).description);
+                toggleViewType();
+                mAdapter.clearList();
+                getDirections(new Gson().fromJson(db.getSetting(db.getActiveUser(),"CURRENT_LOCATION"), LatLng.class));
+                /**
+                 final String placeId = String.valueOf(mResultList.get(position).placeId);
                 PendingResult<PlaceBuffer> placeResult = Places.GeoDataApi
                         .getPlaceById(mGoogleApiClient, placeId);
                 placeResult.setResultCallback(new ResultCallback<PlaceBuffer>() {
                     @Override
                     public void onResult(PlaceBuffer places) {
                         if(places.getCount()==1){
-                            //Do the things here on Click.....
                             Intent data = new Intent();
                             data.putExtra("lat",String.valueOf(places.get(0).getLatLng().latitude));
                             data.putExtra("lng", String.valueOf(places.get(0).getLatLng().longitude));
-                            getActivity().setResult(getActivity().RESULT_OK, data);
                         }else {
-                            Toast.makeText(getActivity().getApplicationContext(),"something went wrong",Toast.LENGTH_SHORT).show();
+                            Toast.makeText(getActivity().getApplicationContext(),"Woops! Erro ao interpretar o local selecionado",Toast.LENGTH_SHORT).show();
                         }
                     }
                 });
+               **/
             }
             catch (Exception e){
+                Toast.makeText(getActivity().getApplicationContext(),"Woops! Algo deu errado:"+ e.getMessage() ,Toast.LENGTH_SHORT).show();
 
             }
 
         }
     }
 
-    @Override
-    public void onSavedPlaceClick(ArrayList<SavedAddress> mResultList, int position) {
-        if(mResultList!=null){
-            try {
-                Intent data = new Intent();
-                data.putExtra("lat",String.valueOf(mResultList.get(position).getLatitude()));
-                data.putExtra("lng", String.valueOf(mResultList.get(position).getLongitude()));
+    public void toggleViewType()
+    {
+        if(mMapView != null && mRecyclerView != null)
+        {
+            if(mMapView.getVisibility() == View.GONE && mRecyclerView.getVisibility() == View.VISIBLE)
+            {
+                mMapView.setVisibility(View.VISIBLE);
+                mRecyclerView.setVisibility(View.GONE);
+            }else if(mMapView.getVisibility() == View.VISIBLE && mRecyclerView.getVisibility() == View.GONE)
+            {
+                mMapView.setVisibility(View.GONE);
+                mRecyclerView.setVisibility(View.VISIBLE);
             }
-            catch (Exception e){
-
-            }
-
         }
     }
 }

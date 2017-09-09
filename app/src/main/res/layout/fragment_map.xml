@@ -5,14 +5,12 @@
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:id="@+id/mapContainer"
-    tools:context="com.apackage.insense.MapFragment"
-    android:weightSum="1">
+    tools:context="com.apackage.insense.MapFragment">
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="0dp"
+        android:layout_height="50dp"
         android:background="@color/colorRed"
         android:orientation="horizontal"
-        android:layout_weight="0.1"
         android:weightSum="1">
         <EditText
             android:id="@+id/search_et"
@@ -36,8 +34,7 @@
         android:id="@+id/map_view"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="0.9"
-
+        android:layout_weight="1"
         android:orientation="vertical"
         android:weightSum="1">
         <fragment
@@ -120,8 +117,7 @@
     <android.support.v7.widget.RecyclerView
         android:id="@+id/list_search"
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="0.9"
+        android:layout_height="wrap_content"
         android:visibility="gone"
         android:layout_below="@+id/map_view"
         android:background="@android:color/white"
