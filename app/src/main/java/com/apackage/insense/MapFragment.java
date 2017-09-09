@@ -4,7 +4,9 @@ import android.Manifest;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
+import android.location.Address;
 import android.location.Criteria;
+import android.location.Geocoder;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
@@ -15,11 +17,19 @@ import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.Fragment;
 import android.support.v4.content.ContextCompat;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
 import android.widget.Toast;
 
+import com.akexorcist.googledirection.DirectionCallback;
+import com.akexorcist.googledirection.GoogleDirection;
+import com.akexorcist.googledirection.constant.Language;
+import com.akexorcist.googledirection.constant.TransitMode;
+import com.akexorcist.googledirection.constant.TransportMode;
+import com.akexorcist.googledirection.constant.Unit;
 import com.akexorcist.googledirection.model.Direction;
 import com.akexorcist.googledirection.model.Step;
 import com.akexorcist.googledirection.util.DirectionConverter;
@@ -36,13 +46,19 @@ import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.CameraPosition;
+import com.google.android.gms.maps.model.Circle;
+import com.google.android.gms.maps.model.CircleOptions;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.LatLngBounds;
+import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.PolylineOptions;
 import com.google.gson.Gson;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 import static android.content.Context.LOCATION_SERVICE;
@@ -62,10 +78,13 @@ public class MapFragment extends Fragment implements ServerConnectionListener, O
     private DataBase db;
     private ServerConnection con;
     private SupportMapFragment map;
-
+    private Button leftButton, rightButton, upButton, downButton, downDblButton, upDblButton, rightDblButton, leftDblButton;
     private GoogleMap mMap;
+    private ArrayList<Circle> stepsBounds;
     private LocationManager locationManager;
-    private MarkerOptions userMarker;
+    private Marker userMarker;
+    private double arrowIncrease = 0.000130;
+    private LatLngBounds.Builder bounds;
 
     public MapFragment() {
         // Required empty public constructor
@@ -79,8 +98,18 @@ public class MapFragment extends Fragment implements ServerConnectionListener, O
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        if (ActivityCompat.checkSelfPermission(getActivity(), Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(getActivity(), Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            requestPermissions(new String[]{Manifest.permission.ACCESS_COARSE_LOCATION, Manifest.permission.ACCESS_FINE_LOCATION}, Constants.PERMISSION_RC_MAPS);
+        db = new DataBase(getActivity().getApplicationContext());
+        stepsBounds = new ArrayList<Circle>();
+        LatLng currentLoc = new Gson().fromJson(db.getSetting(db.getActiveUser(),"CURRENT_LOCATION"), LatLng.class);
+        Direction currentDirection = new Gson().fromJson(db.getSetting(db.getActiveUser(),"CURRENT_DIRECTION"), Direction.class);
+        if(currentLoc == null)
+        {
+            db.saveOrUpdateSetting(db.getActiveUser(),"CURRENT_LOCATION", new Gson().toJson(new LatLng(52.473683, 13.423557)));
+            currentLoc = new Gson().fromJson(db.getSetting(db.getActiveUser(),"CURRENT_LOCATION"), LatLng.class);
+        }
+        if(currentDirection == null)
+        {
+            getDirections(currentLoc);
         }
     }
 
@@ -94,6 +123,73 @@ public class MapFragment extends Fragment implements ServerConnectionListener, O
         SupportMapFragment mapFragment = (SupportMapFragment) getChildFragmentManager()
                 .findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
+        leftButton = (Button) v.findViewById(R.id.left_arrow);
+        leftButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+
+                LatLng current = new Gson().fromJson(db.getSetting(db.getActiveUser(),"CURRENT_LOCATION"), LatLng.class);
+                changeLocation(current, "west", arrowIncrease);
+            }
+        });
+        rightButton = (Button) v.findViewById(R.id.right_arrow);
+        rightButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                LatLng current = new Gson().fromJson(db.getSetting(db.getActiveUser(),"CURRENT_LOCATION"), LatLng.class);
+                changeLocation(current, "east", arrowIncrease);
+            }
+        });
+        upButton = (Button) v.findViewById(R.id.up_arrow);
+        upButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                LatLng current = new Gson().fromJson(db.getSetting(db.getActiveUser(),"CURRENT_LOCATION"), LatLng.class);
+                changeLocation(current, "north", arrowIncrease);
+            }
+        });
+        downButton = (Button) v.findViewById(R.id.down_arrow);
+        downButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                LatLng current = new Gson().fromJson(db.getSetting(db.getActiveUser(),"CURRENT_LOCATION"), LatLng.class);
+                changeLocation(current, "south", arrowIncrease);
+            }
+        });
+
+        leftDblButton = (Button) v.findViewById(R.id.left_arrow_dbl);
+        leftDblButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+
+                LatLng current = new Gson().fromJson(db.getSetting(db.getActiveUser(),"CURRENT_LOCATION"), LatLng.class);
+                changeLocation(current, "west", arrowIncrease* 3);
+            }
+        });
+        rightDblButton = (Button) v.findViewById(R.id.right_arrow_dbl);
+        rightDblButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                LatLng current = new Gson().fromJson(db.getSetting(db.getActiveUser(),"CURRENT_LOCATION"), LatLng.class);
+                changeLocation(current, "east", arrowIncrease * 3);
+            }
+        });
+        upDblButton = (Button) v.findViewById(R.id.up_arrow_dbl);
+        upDblButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                LatLng current = new Gson().fromJson(db.getSetting(db.getActiveUser(),"CURRENT_LOCATION"), LatLng.class);
+                changeLocation(current, "north", arrowIncrease * 3);
+            }
+        });
+        downDblButton = (Button) v.findViewById(R.id.down_arrow_dbl);
+        downDblButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                LatLng current = new Gson().fromJson(db.getSetting(db.getActiveUser(),"CURRENT_LOCATION"), LatLng.class);
+                changeLocation(current, "south", arrowIncrease * 3);
+            }
+        });
         return v;
     }
 
@@ -146,58 +242,28 @@ public class MapFragment extends Fragment implements ServerConnectionListener, O
     public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap;
         mMap.setMyLocationEnabled(false);
-        mMap.getUiSettings().setMyLocationButtonEnabled(false);
-
-        if(ContextCompat.checkSelfPermission
-                (getActivity(), Manifest.permission.ACCESS_FINE_LOCATION)
-                == PackageManager.PERMISSION_GRANTED && ContextCompat.checkSelfPermission
-                (getActivity(), Manifest.permission.ACCESS_COARSE_LOCATION)
-                == PackageManager.PERMISSION_GRANTED) {
-            getCurrentLocation();
-        }else{
-            ActivityCompat.requestPermissions(getActivity(),
-                    new String[]{Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION},
-                    1000
-            );
-        }
+        setUserLocation();
         showDirections();
-
-
     }
 
     @Override
     public void onLocationChanged(Location location) {
-
-        LatLng userLocation = new LatLng(location.getLatitude()
-                ,location.getLongitude());
-
-        if(userMarker == null){
-            userMarker = new MarkerOptions();
-            userMarker.title("Eu");
-            userMarker.position(userLocation);
-            mMap.addMarker(userMarker);
-        }
-        else {
-            userMarker.position(userLocation);
-        }
-
-        mMap.moveCamera(CameraUpdateFactory.newLatLng(userLocation));//Moves the camera to users current longitude and latitude
-        mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(userLocation,(float) 14.6));//Animates camera and zooms to preferred state on the user's current location.
+        //wont use this since we are using our own external GPS
     }
 
     @Override
     public void onStatusChanged(String s, int i, Bundle bundle) {
-
+        //wont use this since we are using our own external GPS
     }
 
     @Override
     public void onProviderEnabled(String s) {
-
+        //wont use this since we are using our own external GPS
     }
 
     @Override
     public void onProviderDisabled(String s) {
-
+        //wont use this since we are using our own external GPS
     }
 
     @Override
@@ -205,18 +271,7 @@ public class MapFragment extends Fragment implements ServerConnectionListener, O
                                            @NonNull String[] permissions,
                                            @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-
-        if(requestCode == 1000 &&
-                grantResults.length > 0 &&
-                grantResults[0]
-                        == PackageManager.PERMISSION_GRANTED){
-
-            if(ContextCompat.checkSelfPermission
-                    (getActivity(), Manifest.permission.ACCESS_FINE_LOCATION)
-                    == PackageManager.PERMISSION_GRANTED) {
-                getCurrentLocation();
-            }
-        }
+        //wont use this since we are using our own external GPS (no permission required)
     }
 
     public void refreshDirections()
@@ -244,27 +299,127 @@ public class MapFragment extends Fragment implements ServerConnectionListener, O
         for (PolylineOptions polylineOption : polylineOptionList) {
             mMap.addPolyline(polylineOption);
         }
-        mMap.addMarker(userMarker);
+        int i = 0;
+        for (Step step : stepList) {
+            CircleOptions opt = new CircleOptions()
+                    .center(step.getEndLocation().getCoordination())
+                    .radius(30)
+                    .strokeWidth(2)
+                    .strokeColor(R.color.colorPrimaryDark)
+                    .fillColor(R.color.colorRed)
+                    .clickable(false);
+            Circle c = mMap.addCircle(opt);
+            c.setTag(step);
+            stepsBounds.add(c);
+        }
+
+        setUserLocation();
     }
 
-    public void getCurrentLocation() {
-
-        locationManager = (LocationManager) getActivity().getSystemService(LOCATION_SERVICE);
-        String provider= locationManager.getBestProvider(new Criteria(), true);
-
-        if(provider==null){
-            onProviderDisabled(provider);
+    private boolean setUserLocation()
+    {
+        LatLng currentLoc = new Gson().fromJson(db.getSetting(db.getActiveUser(),"CURRENT_LOCATION"), LatLng.class);
+        if(currentLoc != null && mMap != null)
+        {
+            if(userMarker != null)
+            {
+                userMarker.remove();
+            }
+            MarkerOptions markerSetup = new MarkerOptions();
+            markerSetup.title("Eu");
+            markerSetup.position(currentLoc);
+            userMarker = mMap.addMarker(markerSetup);
+            mMap.moveCamera(CameraUpdateFactory.newLatLng(currentLoc));//Moves the camera to users current longitude and latitude
+            mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(currentLoc,(float) 14.6));//Animates camera and zooms to preferred state on the user's current location.
+            checkForSteps(currentLoc);
+            return true;
         }
-        Location loc=locationManager.getLastKnownLocation(provider);
-        if (loc!=null){
-            onLocationChanged(loc);
+        return false;
+    }
+
+    private void checkForSteps(LatLng currentLoc) {
+        if(!stepsBounds.isEmpty())
+        {
+            int i = 0;
+            for (Circle c : stepsBounds) {
+                float[] distance = new float[2];
+                Location.distanceBetween( currentLoc.latitude, currentLoc.longitude,
+                        c.getCenter().latitude, c.getCenter().longitude, distance);
+                if( distance[0] > c.getRadius()  ){
+                    //Toast.makeText(getBaseContext(), "Outside", Toast.LENGTH_LONG).show();
+                } else {
+                    //always get the next instruction, remember to add to reproduce first instruction when starting the navigation
+                    //Exception: last circle
+                    if(stepsBounds.size() < i + 1)
+                    {
+                        Step step = (Step) (stepsBounds.get(i+1).getTag());
+                        Toast.makeText(getActivity().getApplicationContext(), step.getHtmlInstruction(), Toast.LENGTH_LONG).show();
+                        break;
+                    }
+                }
+                i++;
+            }
         }
-        locationManager.requestLocationUpdates(
-                LocationManager.GPS_PROVIDER, 5000, 5, this);
-        Location location =
-                locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
-        if(location != null){
-            onLocationChanged(location);
+    }
+
+    private LatLng changeLocation(LatLng current, String type, double val)
+    {
+        double temp = 0;
+        switch (type)
+        {
+            case "west":
+                temp = current.longitude - val;
+                current = new LatLng(current.latitude, temp);
+                break;
+            case "east":
+                temp = current.longitude + val;
+                current = new LatLng(current.latitude, temp);
+                break;
+            case "north":
+                temp = current.latitude + val;
+                current = new LatLng(temp, current.longitude);
+                break;
+            case "south":
+                temp = current.latitude - val;
+                current = new LatLng(temp, current.longitude);
+                break;
+        }
+        db.saveOrUpdateSetting(db.getActiveUser(), "CURRENT_LOCATION", new Gson().toJson(current));
+
+        setUserLocation();
+        return current;
+    }
+
+    public void getDirections(LatLng currentLoc) {
+        try {
+            Geocoder geo = new Geocoder(getActivity().getApplicationContext(), Locale.US);
+            List<Address> results = null;
+            results = geo.getFromLocationName("Hermannplatz, Berlin", 3);
+            GoogleDirection.withServerKey("AIzaSyCmWiuCgBSJKWLxRWoNeaJiP4VKRnbexQ8")
+                    .from(currentLoc)
+                    .to(new LatLng(results.get(0).getLatitude(), results.get(0).getLongitude()))
+                    .unit(Unit.METRIC)
+                    .transitMode(TransitMode.TRAIN)
+                    .transitMode(TransitMode.BUS)
+                    .transitMode(TransitMode.SUBWAY)
+                    .transportMode(TransportMode.WALKING)
+                    .language(Language.PORTUGUESE_BRAZIL)
+                    .execute(new DirectionCallback() {
+                        @Override
+                        public void onDirectionSuccess(Direction direction, String rawBody) {
+                            if(direction.isOK()) {
+                                db.saveOrUpdateSetting(db.getActiveUser(),"CURRENT_DIRECTION",new Gson().toJson(direction));
+                                MapFragment.this.refreshDirections();
+                            }
+                        }
+
+                        @Override
+                        public void onDirectionFailure(Throwable t) {
+                            Log.i("INSENSE","FAILED TO GET DIRECTIONS");
+                        }
+                    });
+        } catch (IOException e) {
+            e.printStackTrace();
         }
     }
 }

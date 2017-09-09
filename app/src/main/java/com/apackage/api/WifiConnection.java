@@ -51,6 +51,7 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketException;
+import java.util.Calendar;
 import java.util.List;
 import java.util.Locale;
 
@@ -107,13 +108,8 @@ public class WifiConnection extends AsyncTask<Void, Void, Void> {
             }
             handlerReceiverClient.obtainMessage(Constants.GLASS_AUDIO_RECOGNIZED, "Hermannplatz, Berlin").sendToTarget();
             while(!isCancelled() && socket.isConnected() && !socket.isClosed()){
-                //TODO:fazer essa checkagem aqui mesmo, porem fazer uma logica para executar a cada 5seg
-                if(!this.isWifiApEnabled() || !this.hasConnectedClient())
-                {
-                    socket.close();
-                    throw new ConnectException("Socket unexpecetedly closed!");
-                }
                 inputStream = socket.getInputStream();
+                checkStatus();
                 if (inputStream.available() > 0){
                     byte[] bData = new byte[bufferSize];
                     int bytes = inputStream.read(bData);
@@ -215,7 +211,15 @@ public class WifiConnection extends AsyncTask<Void, Void, Void> {
 
     private void checkStatus() throws IOException {
         try {
-            socket.connect(new InetSocketAddress(address, port),5000);
+            //run every 5sec
+            if(Calendar.getInstance().getTimeInMillis() % 5000 == 0)
+            {
+                if(!this.isWifiApEnabled() || !this.hasConnectedClient())
+                {
+                    socket.close();
+                    messageResponse = Message.obtain( handlerReceiverClient, Constants.CONNECTION_GENERAL_ERROR, "The socket was disconnected, the device seem to have lost connection!");
+                }
+            }
         }catch (SocketException e) {
             if(e.getMessage() != "already connected"){
                 socket.close();
