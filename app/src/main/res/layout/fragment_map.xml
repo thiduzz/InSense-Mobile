@@ -1,94 +1,130 @@
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:orientation="vertical"
     android:id="@+id/mapContainer"
-    tools:context="com.apackage.insense.MapFragment">
+    tools:context="com.apackage.insense.MapFragment"
+    android:weightSum="1">
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
+        android:layout_height="0dp"
+        android:background="@color/colorRed"
+        android:orientation="horizontal"
+        android:layout_weight="0.1"
+        android:weightSum="1">
+        <EditText
+            android:id="@+id/search_et"
+            android:hint="Buscar..."
+            android:singleLine="true"
+            android:textColor="@android:color/white"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="0.8"/>
+        <ImageView
+            android:id="@+id/clear"
+            android:layout_width="0dp"
+            android:layout_weight="0.2"
+            android:layout_height="match_parent"
+            android:src="@android:drawable/ic_delete"
+            android:layout_alignParentRight="true"
+            android:layout_gravity="right|center_vertical"
+            android:visibility="gone"/>
+    </LinearLayout>
+    <LinearLayout
+        android:id="@+id/map_view"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="0.9"
+
         android:orientation="vertical"
         android:weightSum="1">
-    <fragment
+        <fragment
         android:id="@+id/map"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="0.8"
+        android:layout_weight="0.9"
         class="com.google.android.gms.maps.SupportMapFragment" />
         <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="0.1">
-        <Button
+            <Button
             android:id="@+id/left_arrow"
-            android:layout_width="50dp"
-            android:layout_height="50dp"
+            android:layout_width="45dp"
+            android:layout_height="45dp"
             android:textSize="35dp"
             android:background="@color/colorRed"
             android:textColor="@android:color/white"
             android:text="←"/>
-        <Button
+            <Button
             android:id="@+id/right_arrow"
-            android:layout_width="50dp"
-            android:layout_height="50dp"
+            android:layout_width="45dp"
+            android:layout_height="45dp"
             android:textSize="35dp"
             android:background="@color/colorRed"
             android:textColor="@android:color/white"
             android:text="→"/>
-        <Button
+            <Button
             android:id="@+id/up_arrow"
-            android:layout_width="50dp"
-            android:layout_height="50dp"
+            android:layout_width="45dp"
+            android:layout_height="45dp"
             android:textSize="35dp"
             android:background="@color/colorRed"
             android:textColor="@android:color/white"
             android:text="↑"/>
-        <Button
+            <Button
             android:id="@+id/down_arrow"
-            android:layout_width="50dp"
-            android:layout_height="50dp"
+            android:layout_width="45dp"
+            android:layout_height="45dp"
             android:textSize="35dp"
             android:background="@color/colorRed"
             android:textColor="@android:color/white"
             android:text="↓"/>
-    </LinearLayout>
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="0.1">
             <Button
                 android:id="@+id/left_arrow_dbl"
-                android:layout_width="50dp"
-                android:layout_height="50dp"
+                android:layout_width="45dp"
+                android:layout_height="45dp"
                 android:textSize="35dp"
                 android:background="@color/colorRed"
                 android:textColor="@android:color/white"
                 android:text="⇇"/>
             <Button
                 android:id="@+id/right_arrow_dbl"
-                android:layout_width="50dp"
-                android:layout_height="50dp"
+                android:layout_width="45dp"
+                android:layout_height="45dp"
                 android:textSize="35dp"
                 android:background="@color/colorRed"
                 android:textColor="@android:color/white"
                 android:text="⇉"/>
             <Button
                 android:id="@+id/up_arrow_dbl"
-                android:layout_width="50dp"
-                android:layout_height="50dp"
+                android:layout_width="45dp"
+                android:layout_height="45dp"
                 android:textSize="35dp"
                 android:background="@color/colorRed"
                 android:textColor="@android:color/white"
                 android:text="⇈"/>
             <Button
                 android:id="@+id/down_arrow_dbl"
-                android:layout_width="50dp"
-                android:layout_height="50dp"
+                android:layout_width="45dp"
+                android:layout_height="45dp"
                 android:textSize="35dp"
                 android:background="@color/colorRed"
                 android:textColor="@android:color/white"
                 android:text="⇊"/>
-        </LinearLayout>
+    </LinearLayout>
     </LinearLayout>
 
-</FrameLayout>
+    <android.support.v7.widget.RecyclerView
+        android:id="@+id/list_search"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="0.9"
+        android:visibility="gone"
+        android:layout_below="@+id/map_view"
+        android:background="@android:color/white"
+        android:layout_marginTop="10dp"/>
+
+</LinearLayout>

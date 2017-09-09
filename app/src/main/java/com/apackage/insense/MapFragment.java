@@ -2,8 +2,11 @@ package com.apackage.insense;
 
 import android.Manifest;
 import android.content.Context;
+import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.content.res.Resources;
 import android.graphics.Color;
+import android.graphics.Typeface;
 import android.location.Address;
 import android.location.Criteria;
 import android.location.Geocoder;
@@ -17,11 +20,20 @@ import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.Fragment;
 import android.support.v4.content.ContextCompat;
+import android.support.v7.widget.LinearLayoutManager;
+import android.support.v7.widget.RecyclerView;
+import android.text.Editable;
+import android.text.TextWatcher;
+import android.text.style.CharacterStyle;
+import android.text.style.StyleSpan;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.EditText;
+import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.Toast;
 
 import com.akexorcist.googledirection.DirectionCallback;
@@ -37,7 +49,19 @@ import com.apackage.api.ServerConnection;
 import com.apackage.api.ServerConnectionListener;
 import com.apackage.db.DataBase;
 import com.apackage.utils.Constants;
+import com.apackage.utils.PlaceAutoCompleteInterface;
 import com.apackage.utils.OnActivityFragmentsInteractionListener;
+import com.apackage.utils.PlaceAutocompleteAdapter;
+import com.apackage.utils.SavedAddress;
+import com.apackage.utils.SavedPlaceListener;
+import com.google.android.gms.common.ConnectionResult;
+import com.google.android.gms.common.api.GoogleApiClient;
+import com.google.android.gms.common.api.PendingResult;
+import com.google.android.gms.common.api.ResultCallback;
+import com.google.android.gms.location.places.PlaceBuffer;
+import com.google.android.gms.location.places.Places;
+import com.google.android.gms.location.places.ui.PlaceAutocomplete;
+import com.google.android.gms.location.places.ui.PlacePicker;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.MapView;
@@ -50,6 +74,7 @@ import com.google.android.gms.maps.model.Circle;
 import com.google.android.gms.maps.model.CircleOptions;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.LatLngBounds;
+import com.google.android.gms.maps.model.MapStyleOptions;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.PolylineOptions;
@@ -72,7 +97,7 @@ import static android.content.Context.LOCATION_SERVICE;
  * Use the {@link MapFragment#newInstance} factory method to
  * create an instance of this fragment.
  */
-public class MapFragment extends Fragment implements ServerConnectionListener, OnMapReadyCallback, LocationListener {
+public class MapFragment extends Fragment implements PlaceAutoCompleteInterface, SavedPlaceListener, ServerConnectionListener, OnMapReadyCallback, LocationListener {
 
     private OnActivityFragmentsInteractionListener mListener;
     private DataBase db;
@@ -85,6 +110,18 @@ public class MapFragment extends Fragment implements ServerConnectionListener, O
     private Marker userMarker;
     private double arrowIncrease = 0.000130;
     private LatLngBounds.Builder bounds;
+    private GoogleApiClient mGoogleApiClient;
+    private RecyclerView mRecyclerView;
+    private LinearLayout mMapView;
+    private LinearLayoutManager llm;
+    private EditText mSearchEdittext;
+    private PlaceAutocompleteAdapter mAdapter;
+    private ImageView mClear;
+    private static final LatLngBounds BOUNDS_BRAZIL = new LatLngBounds(
+            new LatLng(-0, 0), new LatLng(0, 0));
+    private static final LatLngBounds BOUNDS_GERMANY = new LatLngBounds(
+            new LatLng(-0, 0), new LatLng(0, 0));
+    List<SavedAddress> mSavedAddressList;
 
     public MapFragment() {
         // Required empty public constructor
@@ -111,6 +148,15 @@ public class MapFragment extends Fragment implements ServerConnectionListener, O
         {
             getDirections(currentLoc);
         }
+        mGoogleApiClient = new GoogleApiClient.Builder(getActivity().getApplicationContext())
+                .enableAutoManage(getActivity(), 0, new GoogleApiClient.OnConnectionFailedListener() {
+                    @Override
+                    public void onConnectionFailed(@NonNull ConnectionResult connectionResult) {
+                        Toast.makeText(getActivity().getApplicationContext(), "Não foi possível conectar com o servidor de buscas!", Toast.LENGTH_LONG).show();
+                    }
+                })
+                .addApi(Places.GEO_DATA_API)
+                .build();
     }
 
     @Override
@@ -118,6 +164,8 @@ public class MapFragment extends Fragment implements ServerConnectionListener, O
                              Bundle savedInstanceState) {
         View v = inflater.inflate(R.layout.fragment_map, container,
                 false);
+
+        mGoogleApiClient.connect();
 
         // Obtain the SupportMapFragment and get notified when the map is ready to be used.
         SupportMapFragment mapFragment = (SupportMapFragment) getChildFragmentManager()
@@ -190,6 +238,8 @@ public class MapFragment extends Fragment implements ServerConnectionListener, O
                 changeLocation(current, "south", arrowIncrease * 3);
             }
         });
+
+        v = initViews(v);
         return v;
     }
 
@@ -214,6 +264,7 @@ public class MapFragment extends Fragment implements ServerConnectionListener, O
     @Override
     public void onDetach() {
         super.onDetach();
+        mGoogleApiClient.disconnect();
         mListener = null;
     }
 
@@ -240,10 +291,88 @@ public class MapFragment extends Fragment implements ServerConnectionListener, O
 
     @Override
     public void onMapReady(GoogleMap googleMap) {
-        mMap = googleMap;
-        mMap.setMyLocationEnabled(false);
-        setUserLocation();
-        showDirections();
+        try {
+            mMap = googleMap;
+            boolean success = mMap.setMapStyle(
+                    MapStyleOptions.loadRawResourceStyle(
+                            getActivity().getApplicationContext(), R.raw.map_style));
+            if (!success) {
+                Log.e("INSENSE", "Style parsing failed.");
+            }
+            mMap.setMyLocationEnabled(false);
+            setUserLocation();
+            showDirections();
+        } catch (Resources.NotFoundException e) {
+            Log.e("INSENSE", "Can't find style. Error: ", e);
+        }
+    }
+
+    private View initViews(View v){
+        mRecyclerView = (RecyclerView)v.findViewById(R.id.list_search);
+        mRecyclerView.setHasFixedSize(true);
+        llm = new LinearLayoutManager(getActivity().getApplicationContext());
+        mRecyclerView.setLayoutManager(llm);
+        mRecyclerView.setVisibility(View.GONE);
+        mMapView = (LinearLayout) v.findViewById(R.id.map_view);
+        mMapView.setVisibility(View.VISIBLE);
+        mSearchEdittext = (EditText) v.findViewById(R.id.search_et);
+        mClear = (ImageView) v.findViewById(R.id.clear);
+        mClear.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                mSearchEdittext.setText("");
+                if(mAdapter!=null){
+                    mAdapter.clearList();
+                }
+            }
+        });
+
+        mAdapter = new PlaceAutocompleteAdapter(MapFragment.this, R.layout.view_placesearch,
+                mGoogleApiClient, BOUNDS_BRAZIL, null);
+        mRecyclerView.setAdapter(mAdapter);
+
+        mSearchEdittext.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+
+            }
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                if (count > 0) {
+                    mClear.setVisibility(View.VISIBLE);
+                    mRecyclerView.setVisibility(View.VISIBLE);
+                    mMapView.setVisibility(View.GONE);
+                    if (mAdapter != null) {
+                        mRecyclerView.setAdapter(mAdapter);
+                    }
+                } else {
+                    mClear.setVisibility(View.GONE);
+                    mRecyclerView.setVisibility(View.GONE);
+                    mMapView.setVisibility(View.VISIBLE);
+
+                    /**
+                    if (mSavedAdapter != null && mSavedAddressList.size() > 0) {
+                        mRecyclerView.setAdapter(mSavedAdapter);
+                    }
+                    **/
+                }
+                if (!s.toString().equals("") && mGoogleApiClient.isConnected()) {
+                    mAdapter.getFilter().filter(s.toString());
+                } else if (!mGoogleApiClient.isConnected()) {
+//                    Toast.makeText(getApplicationContext(), Constants.API_NOT_CONNECTED, Toast.LENGTH_SHORT).show();
+                    Log.e("", "NOT CONNECTED");
+                }
+            }
+
+            @Override
+            public void afterTextChanged(Editable editable) {
+
+            }
+
+        });
+
+        return v;
     }
 
     @Override
@@ -420,6 +549,54 @@ public class MapFragment extends Fragment implements ServerConnectionListener, O
                     });
         } catch (IOException e) {
             e.printStackTrace();
+        }
+    }
+
+    @Override
+    public void onPlaceClick(ArrayList<PlaceAutocompleteAdapter.PlaceAutocomplete> mResultList, int position) {
+        if(mResultList!=null){
+            try {
+                final String placeId = String.valueOf(mResultList.get(position).placeId);
+                        /*
+                             Issue a request to the Places Geo Data API to retrieve a Place object with additional details about the place.
+                         */
+
+                PendingResult<PlaceBuffer> placeResult = Places.GeoDataApi
+                        .getPlaceById(mGoogleApiClient, placeId);
+                placeResult.setResultCallback(new ResultCallback<PlaceBuffer>() {
+                    @Override
+                    public void onResult(PlaceBuffer places) {
+                        if(places.getCount()==1){
+                            //Do the things here on Click.....
+                            Intent data = new Intent();
+                            data.putExtra("lat",String.valueOf(places.get(0).getLatLng().latitude));
+                            data.putExtra("lng", String.valueOf(places.get(0).getLatLng().longitude));
+                            getActivity().setResult(getActivity().RESULT_OK, data);
+                        }else {
+                            Toast.makeText(getActivity().getApplicationContext(),"something went wrong",Toast.LENGTH_SHORT).show();
+                        }
+                    }
+                });
+            }
+            catch (Exception e){
+
+            }
+
+        }
+    }
+
+    @Override
+    public void onSavedPlaceClick(ArrayList<SavedAddress> mResultList, int position) {
+        if(mResultList!=null){
+            try {
+                Intent data = new Intent();
+                data.putExtra("lat",String.valueOf(mResultList.get(position).getLatitude()));
+                data.putExtra("lng", String.valueOf(mResultList.get(position).getLongitude()));
+            }
+            catch (Exception e){
+
+            }
+
         }
     }
 }
