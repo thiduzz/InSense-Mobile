@@ -10,10 +10,6 @@
             android:id="@+id/nav_map"
             android:icon="@drawable/ic_map"
             android:title="Mapa" />
-        <item
-            android:id="@+id/nav_apps"
-            android:icon="@drawable/ic_apps"
-            android:title="Aplicações" />
     </group>
     <group
         android:id="@+id/app_section"

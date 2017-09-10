@@ -5,8 +5,10 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.res.Resources;
+import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.graphics.Typeface;
+import android.graphics.drawable.BitmapDrawable;
 import android.location.Address;
 import android.location.Criteria;
 import android.location.Geocoder;
@@ -342,14 +344,14 @@ public class MapFragment extends Fragment implements PlaceAutoCompleteInterface,
             @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
                 if (count > 0) {
-                    mClear.setVisibility(View.VISIBLE);
+                    mClear.setImageResource(R.drawable.ic_multiply);
                     mRecyclerView.setVisibility(View.VISIBLE);
                     mMapView.setVisibility(View.GONE);
                     if (mAdapter != null) {
                         mRecyclerView.setAdapter(mAdapter);
                     }
                 } else {
-                    mClear.setVisibility(View.GONE);
+                    mClear.setImageResource(R.drawable.ic_search_thin);
                     mRecyclerView.setVisibility(View.GONE);
                     mMapView.setVisibility(View.VISIBLE);
                 }
@@ -426,7 +428,7 @@ public class MapFragment extends Fragment implements PlaceAutoCompleteInterface,
     private void generateRoute(Direction direction) {
         mMap.clear();
         List<Step> stepList = direction.getRouteList().get(0).getLegList().get(0).getStepList();
-        ArrayList<PolylineOptions> polylineOptionList = DirectionConverter.createTransitPolyline(getActivity().getApplicationContext(), stepList, 5, Color.RED, 3, Color.BLUE);
+        ArrayList<PolylineOptions> polylineOptionList = DirectionConverter.createTransitPolyline(getActivity().getApplicationContext(), stepList, 5, getActivity().getResources().getColor(R.color.colorPrimary), 3, Color.BLUE);
         for (PolylineOptions polylineOption : polylineOptionList) {
             mMap.addPolyline(polylineOption);
         }
@@ -458,6 +460,11 @@ public class MapFragment extends Fragment implements PlaceAutoCompleteInterface,
             }
             MarkerOptions markerSetup = new MarkerOptions();
             markerSetup.position(currentLoc);
+            BitmapDrawable bitmapdraw=(BitmapDrawable)getResources().getDrawable(R.drawable.ic_marker_insense);
+            Bitmap b=bitmapdraw.getBitmap();
+            Bitmap smallMarker = Bitmap.createScaledBitmap(b, 125, 125, false);
+
+            markerSetup.icon(BitmapDescriptorFactory.fromBitmap(smallMarker));
             userMarker = mMap.addMarker(markerSetup);
             mMap.moveCamera(CameraUpdateFactory.newLatLng(currentLoc));//Moves the camera to users current longitude and latitude
             mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(currentLoc,(float) 14.6));//Animates camera and zooms to preferred state on the user's current location.
@@ -484,7 +491,10 @@ public class MapFragment extends Fragment implements PlaceAutoCompleteInterface,
                     if(stepsBounds.size() > i + 1)
                     {
                         Step step = (Step) (stepsBounds.get(i+1).getTag());
-                        Toast.makeText(getActivity().getApplicationContext(), step.getHtmlInstruction(), Toast.LENGTH_LONG).show();
+                        if(step != null && step.getHtmlInstruction() != null )
+                        {
+                            Toast.makeText(getActivity().getApplicationContext(), step.getHtmlInstruction(), Toast.LENGTH_LONG).show();
+                        }
                         Log.i("INSENSE", "Entrou na area!");
                     }
                 }

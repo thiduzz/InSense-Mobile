@@ -11,10 +11,13 @@
         android:layout_height="50dp"
         android:background="@color/colorRed"
         android:orientation="horizontal"
+        android:paddingLeft="20dp"
+        android:paddingRight="20dp"
         android:weightSum="1">
         <EditText
             android:id="@+id/search_et"
             android:hint="Buscar..."
+            android:textColorHint="#80ffffff"
             android:singleLine="true"
             android:textColor="@android:color/white"
             android:layout_width="0dp"
@@ -25,10 +28,11 @@
             android:layout_width="0dp"
             android:layout_weight="0.2"
             android:layout_height="match_parent"
-            android:src="@android:drawable/ic_delete"
+            android:paddingTop="10dp"
+            android:paddingBottom="10dp"
+            app:srcCompat="@drawable/ic_search_thin"
             android:layout_alignParentRight="true"
-            android:layout_gravity="right|center_vertical"
-            android:visibility="gone"/>
+            android:layout_gravity="right|center_vertical"/>
     </LinearLayout>
     <LinearLayout
         android:id="@+id/map_view"

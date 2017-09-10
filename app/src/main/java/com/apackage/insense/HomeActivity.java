@@ -76,6 +76,12 @@ public class HomeActivity extends AppCompatActivity
             //NAO COLOCAR BREAKPOINT AQUI SE ESTIVER RODANDO COM O INSTANT RUN!!!!!!!!!!!!
             switch (message.what)
             {
+                case Constants.CONNECTION_CLOSED:
+                    Log.i("INSENSE", "CLOSING CONNECTION... "+ (String)message.obj);
+                    db.deleteSetting(db.getActiveUser(),"CONNECTED_IP");
+                    db.changeDeviceConnectionStatus(db.getActiveUser(),false);
+                    disconnectDevice(false);
+                    break;
                 case Constants.CONNECTION_ERROR:
                     Toast.makeText(getApplicationContext(),(String)message.obj, Toast.LENGTH_LONG).show();
                     Log.i("INSENSE", "ERROR CONNECTION! "+ (String)message.obj);
@@ -189,9 +195,6 @@ public class HomeActivity extends AppCompatActivity
             {
                 fragDev.changeConnectionStatus(null);
             }
-            if(showToast){
-                Toast.makeText(getApplicationContext(),"INSENSE IS DISCONNECTED!", Toast.LENGTH_LONG).show();
-            }
         }
     });
 
@@ -293,12 +296,7 @@ public class HomeActivity extends AppCompatActivity
             HomeFragment homeFragment = new HomeFragment();
             FragmentManager manager = getSupportFragmentManager();
             manager.beginTransaction().replace(R.id.main_layout, homeFragment, Constants.FRAGMENT_HOME).commit();
-        }else if (id == R.id.nav_apps) {
-            AppsFragment appsFragment = new AppsFragment();
-            FragmentManager manager = getSupportFragmentManager();
-            manager.beginTransaction().replace(R.id.main_layout, appsFragment, Constants.FRAGMENT_APPS).commit();
-
-        } else if (id == R.id.nav_devices) {
+        }else if (id == R.id.nav_devices) {
                 DevicesFragment devicesFragment = new DevicesFragment();
                 FragmentManager manager = getSupportFragmentManager();
                 manager.beginTransaction().replace(R.id.main_layout, devicesFragment, Constants.FRAGMENT_DEVICES).commit();

@@ -21,6 +21,7 @@ import com.apackage.api.HotspotConnection;
 import com.apackage.api.ServerConnectionListener;
 import com.apackage.api.WifiConnection;
 import com.apackage.model.Network;
+import com.apackage.utils.Constants;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
@@ -103,6 +104,7 @@ public class CommunicationService extends Service implements ServerConnectionLis
                         wifi.socket.close();
                 }
                 wifi.cancel(true);
+                ((HomeActivity)activity).handlerReceiverClient.obtainMessage(Constants.CONNECTION_CLOSED, "triggered by stopWirelessConnection").sendToTarget();
             }
         } catch (IOException e) {
             e.printStackTrace();

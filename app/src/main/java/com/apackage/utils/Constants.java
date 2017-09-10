@@ -32,6 +32,7 @@ public class Constants {
     //Wifi codes
     public static final int CONNECTION_GENERAL_ERROR = 1000;
     public static final int CONNECTION_ERROR = 1010;
+    public static final int CONNECTION_CLOSED = 1020;
     //Hotspot codes
     public static final int HOTSPOT_GENERAL_ERROR = 2000;
     public static final int HOTSPOT_DEVICE_FOUND = 2200;
