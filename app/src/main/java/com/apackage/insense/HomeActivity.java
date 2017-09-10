@@ -69,6 +69,8 @@ public class HomeActivity extends AppCompatActivity
     Intent serviceIntent;
     CommunicationService myService;
     DevicesFragment fragDev;
+    Menu toolbarMenu;
+
     public Handler handlerReceiverClient = new Handler(new Handler.Callback() {
         @Override
         public boolean handleMessage(Message message) {
@@ -83,15 +85,16 @@ public class HomeActivity extends AppCompatActivity
                     disconnectDevice(false);
                     break;
                 case Constants.CONNECTION_ERROR:
-                    Toast.makeText(getApplicationContext(),(String)message.obj, Toast.LENGTH_LONG).show();
                     Log.i("INSENSE", "ERROR CONNECTION! "+ (String)message.obj);
                     db.deleteSetting(db.getActiveUser(),"CONNECTED_IP");
                     db.changeDeviceConnectionStatus(db.getActiveUser(),false);
                     disconnectDevice(false);
                     break;
                 case Constants.CONNECTION_GENERAL_ERROR:
-                    Toast.makeText(getApplicationContext(),(String)message.obj, Toast.LENGTH_LONG).show();
                     Log.i("INSENSE", "ERROR CONNECTION GENERAL! "+ (String)message.obj);
+                    db.deleteSetting(db.getActiveUser(),"CONNECTED_IP");
+                    db.changeDeviceConnectionStatus(db.getActiveUser(),false);
+                    disconnectDevice(false);
                     break;
                 case Constants.HOTSPOT_DEVICE_FOUND:
                     db.saveOrUpdateSetting(db.getActiveUser(),"CONNECTED_IP", (String)message.obj);
@@ -130,7 +133,15 @@ public class HomeActivity extends AppCompatActivity
                     {
                         fragDev.changeConnectionStatus(null);
                     }
-                    Toast.makeText(getApplicationContext(),"INSENSE IS ENABLED!", Toast.LENGTH_LONG).show();
+                    Log.i("INSENSE", "Insense is enabled!");
+
+                    invalidateOptionsMenu();
+                    /**
+                    if(toolbarMenu != null)
+                    {
+                        toolbarMenu.findItem(R.id.action_status_wireless).setIcon(getResources().getDrawable(R.drawable.ic_wifi_off));
+                    }
+                    **/
                     break;
                 case Constants.GLASS_NOT_CONNECTED:
                     db.deleteSetting(db.getActiveUser(),"CONNECTED_IP");
@@ -195,6 +206,13 @@ public class HomeActivity extends AppCompatActivity
             {
                 fragDev.changeConnectionStatus(null);
             }
+            invalidateOptionsMenu();
+            /**
+            if(toolbarMenu != null)
+            {
+                toolbarMenu.findItem(R.id.action_status_wireless).setIcon(getResources().getDrawable(R.drawable.ic_wifi_off));
+            }
+             **/
         }
     });
 
@@ -268,8 +286,21 @@ public class HomeActivity extends AppCompatActivity
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
-        //getMenuInflater().inflate(R.menu.home, menu);
+        getMenuInflater().inflate(R.menu.home, menu);
+        this.toolbarMenu = menu;
         return true;
+    }
+
+    @Override
+    public boolean onPrepareOptionsMenu(Menu menu) {
+        MenuItem switchButton = menu.findItem(R.id.action_status_wireless);
+        DataBase db = new DataBase(this);
+        if(db.getActiveUser().isConnected()){
+            switchButton.setIcon(R.drawable.ic_wireless_signal);
+        }else{
+            switchButton.setIcon(R.drawable.ic_wifi_off);
+        }
+        return super.onPrepareOptionsMenu(menu);
     }
 
     @Override

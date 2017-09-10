@@ -51,6 +51,7 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketException;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
 import java.util.Locale;
@@ -72,7 +73,6 @@ public class WifiConnection extends AsyncTask<Void, Void, Void> {
     private ByteArrayOutputStream bufAudio;
     private ByteArrayOutputStream bufData;
     private Context context;
-    private SpeechRecognizer speechRecognizer;
     private WifiManager wifiManager;
 
 
@@ -110,7 +110,8 @@ public class WifiConnection extends AsyncTask<Void, Void, Void> {
             while(!isCancelled() && socket.isConnected() && !socket.isClosed()){
                 inputStream = socket.getInputStream();
                 checkStatus();
-                if (inputStream.available() > 0){
+                if (inputStream.available() > 0)
+                {
                     byte[] bData = new byte[bufferSize];
                     int bytes = inputStream.read(bData);
                     // 0 = dados gerais
@@ -192,21 +193,38 @@ public class WifiConnection extends AsyncTask<Void, Void, Void> {
                 }else{
                     checkStatus();
                 }
+
+                Log.i("INSENSE", "Rodando WifiConnection");
             }
+            Log.i("INSENSE", "WifiConnection PAROU!");
             messageResponse = Message.obtain( handlerReceiverClient, Constants.CONNECTION_ERROR, "Socket was closed or stopped answering");
+            return null;
         }  catch (GoogleJsonResponseException ex){
             ex.getStatusCode();
             ex.printStackTrace();
             messageResponse = Message.obtain( handlerReceiverClient, Constants.CONNECTION_ERROR, ex.getMessage() );
+            return null;
         } catch (ConnectException ex){
             ex.printStackTrace();
-            messageResponse = Message.obtain( handlerReceiverClient, Constants.CONNECTION_ERROR, ex.getMessage() );
+            try {
+                socket.close();
+                messageResponse = Message.obtain( handlerReceiverClient, Constants.CONNECTION_ERROR, ex.getMessage() );
+            } catch (IOException e) {
+                e.printStackTrace();
+                messageResponse = Message.obtain( handlerReceiverClient, Constants.CONNECTION_ERROR, ex.getMessage() );
+            }
+            return null;
         } catch (Exception ex){
             ex.printStackTrace();
-            messageResponse = Message.obtain( handlerReceiverClient, Constants.CONNECTION_GENERAL_ERROR, ex.getMessage() );
+            try {
+                socket.close();
+                messageResponse = Message.obtain( handlerReceiverClient, Constants.CONNECTION_GENERAL_ERROR, ex.getMessage() );
+            } catch (IOException e) {
+                e.printStackTrace();
+                messageResponse = Message.obtain( handlerReceiverClient, Constants.CONNECTION_ERROR, ex.getMessage() );
+            }
+            return null;
         }
-
-        return null;
     }
 
     private void checkStatus() throws IOException {
@@ -214,8 +232,9 @@ public class WifiConnection extends AsyncTask<Void, Void, Void> {
             //run every 5sec
             if(Calendar.getInstance().getTimeInMillis() % 5000 == 0)
             {
-                if(!this.isWifiApEnabled() || !this.hasConnectedClient())
+                if(!this.isWifiApEnabled() || !this.hasConnectedClient() || !this.isConnectionPinging())
                 {
+                    Log.i("INSENSE", "Abortando WifiConnection: fechando socket!");
                     socket.close();
                     messageResponse = Message.obtain( handlerReceiverClient, Constants.CONNECTION_GENERAL_ERROR, "The socket was disconnected, the device seem to have lost connection!");
                 }
@@ -226,6 +245,7 @@ public class WifiConnection extends AsyncTask<Void, Void, Void> {
                 messageResponse = Message.obtain( handlerReceiverClient, Constants.CONNECTION_GENERAL_ERROR, e.getMessage() );
             }
         }catch (Exception e) {
+            Log.i("INSENSE", "Abortando WifiConnection: fechando socket!");
             messageResponse = Message.obtain( handlerReceiverClient, Constants.CONNECTION_GENERAL_ERROR, e.getMessage() );
         }
     }
@@ -367,5 +387,18 @@ public class WifiConnection extends AsyncTask<Void, Void, Void> {
             }
         }
         return false;
+    }
+    public boolean isConnectionPinging(){
+        /**
+        socket = new Socket();
+        socket.connect(new InetSocketAddress(address, port),3000);
+        if(socket.isConnected())
+        {
+            socket.close();
+            return true;
+        }
+        return false;
+        **/
+        return true;
     }
 }

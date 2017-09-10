@@ -112,6 +112,8 @@ public class DataBase extends SQLiteOpenHelper {
                     cursor.getColumnIndexOrThrow(COLUNA_TOKEN)));
             user.setRefreshToken(cursor.getString(
                     cursor.getColumnIndexOrThrow(COLUNA_REFRESH_TOKEN)));
+            user.setIsConnected((cursor.getInt(
+                    cursor.getColumnIndexOrThrow(COLUNA_CONNECTED)) == 1 ? true : false));
             return user;
         }catch (Exception e)
         {

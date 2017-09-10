@@ -478,7 +478,6 @@ public class MapFragment extends Fragment implements PlaceAutoCompleteInterface,
         if(!stepsBounds.isEmpty())
         {
             int i = 0;
-            Log.i("INSENSE", "Iniciando analise de perimetro");
             for (Circle c : stepsBounds) {
                 float[] distance = new float[2];
                 Location.distanceBetween( currentLoc.latitude, currentLoc.longitude,
@@ -495,7 +494,7 @@ public class MapFragment extends Fragment implements PlaceAutoCompleteInterface,
                         {
                             Toast.makeText(getActivity().getApplicationContext(), step.getHtmlInstruction(), Toast.LENGTH_LONG).show();
                         }
-                        Log.i("INSENSE", "Entrou na area!");
+                        Log.i("INSENSE", "Entrou no raio: momento de disparar o audio!");
                     }
                 }
                 i++;

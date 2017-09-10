@@ -14,6 +14,7 @@ public class User implements Serializable  {
     public String token;
     public String name;
     public String refresh_token;
+    public boolean is_connected;
 
 
     public User()
@@ -67,4 +68,11 @@ public class User implements Serializable  {
         this.refresh_token = refresh_token;
     }
 
+    public boolean isConnected() {
+        return is_connected;
+    }
+
+    public void setIsConnected(boolean is_connected) {
+        this.is_connected = is_connected;
+    }
 }
