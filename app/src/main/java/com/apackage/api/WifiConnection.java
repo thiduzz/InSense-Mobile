@@ -15,6 +15,8 @@ import android.util.Log;
 
 import com.apackage.model.Network;
 import com.apackage.utils.Constants;
+import com.github.petr_s.nmea.basic.BasicNMEAHandler;
+import com.github.petr_s.nmea.basic.BasicNMEAParser;
 import com.google.api.client.extensions.android.http.AndroidHttp;
 import com.google.api.client.extensions.android.json.AndroidJsonFactory;
 import com.google.api.client.googleapis.json.GoogleJsonResponseException;
@@ -55,6 +57,7 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 
 /**
  * Created by tschannerl on 20/07/17.
@@ -76,7 +79,7 @@ public class WifiConnection extends AsyncTask<Void, Void, Void> {
     private WifiManager wifiManager;
 
 
-    public WifiConnection(String address, int port, Handler handler, Context context, WifiManager wifiManager) {
+    public WifiConnection(String address, int port, Handler handler, BasicNMEAHandler gpsHandler, Context context, WifiManager wifiManager) {
         this.address = address;
         this.port = port;
         this.handlerReceiverClient = handler;
@@ -181,7 +184,8 @@ public class WifiConnection extends AsyncTask<Void, Void, Void> {
                             break;
                         }
                         case 3 : {
-
+                            //TODO:Mudar para a string recebida pelo GPS
+                            handlerReceiverClient.obtainMessage(Constants.GLASS_GPS_COORDINATE_RECEIVED,"$GPRMC,163407.000,A,5004.7485,N,01423.8956,E,0.04,36.97,180416,,*38").sendToTarget();
                             break;
                         }
                         case 4 : {

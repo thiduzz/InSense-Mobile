@@ -22,6 +22,7 @@ import com.apackage.api.ServerConnectionListener;
 import com.apackage.api.WifiConnection;
 import com.apackage.model.Network;
 import com.apackage.utils.Constants;
+import com.github.petr_s.nmea.basic.BasicNMEAHandler;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
@@ -29,6 +30,7 @@ import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Map;
+import java.util.Set;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -52,6 +54,7 @@ public class CommunicationService extends Service implements ServerConnectionLis
     };
     private WifiConnection wifi;
     private HotspotConnection hotspot;
+
 
     @Nullable
     @Override

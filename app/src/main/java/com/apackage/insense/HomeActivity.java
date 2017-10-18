@@ -46,6 +46,8 @@ import com.apackage.db.DataBase;
 import com.apackage.model.User;
 import com.apackage.utils.Constants;
 import com.apackage.utils.OnActivityFragmentsInteractionListener;
+import com.github.petr_s.nmea.basic.BasicNMEAHandler;
+import com.github.petr_s.nmea.basic.BasicNMEAParser;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.gson.Gson;
 
@@ -62,6 +64,7 @@ import java.net.Socket;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 
 public class HomeActivity extends AppCompatActivity
         implements NavigationView.OnNavigationItemSelectedListener, OnActivityFragmentsInteractionListener<Object>, CommunicationService.Callbacks{
@@ -70,7 +73,6 @@ public class HomeActivity extends AppCompatActivity
     CommunicationService myService;
     DevicesFragment fragDev;
     Menu toolbarMenu;
-
     public Handler handlerReceiverClient = new Handler(new Handler.Callback() {
         @Override
         public boolean handleMessage(Message message) {
@@ -195,6 +197,11 @@ public class HomeActivity extends AppCompatActivity
                         return false;
                     }
                     break;
+
+                case Constants.GLASS_GPS_COORDINATE_RECEIVED:
+                    BasicNMEAParser parser = new BasicNMEAParser(gpsHandler);
+                    parser.parse((String) message.obj);
+                    break;
             }
             return false;
         }
@@ -215,6 +222,53 @@ public class HomeActivity extends AppCompatActivity
              **/
         }
     });
+    BasicNMEAHandler gpsHandler = new BasicNMEAHandler() {
+        @Override
+        public void onStart() {
+
+        }
+        @Override
+        public void onGGA(long time, double latitude, double longitude, float altitude, FixQuality quality, int satellites, float hdop) {
+
+        }
+
+        @Override
+        public void onGSV(int satellites, int index, int prn, float elevation, float azimuth, int snr) {
+
+        }
+
+        @Override
+        public void onGSA(FixType type, Set<Integer> prns, float pdop, float hdop, float vdop) {
+
+        }
+
+        @Override
+        public void onUnrecognized(String sentence) {
+
+        }
+
+        @Override
+        public void onBadChecksum(int expected, int actual) {
+
+        }
+
+        @Override
+        public void onException(Exception e) {
+
+        }
+
+        @Override
+        public void onFinished() {
+
+        }
+
+        @Override
+        public void onRMC(long date, long time, double latitude, double longitude, float speed, float direction) {
+            Log.i("INSENSE","Leu o GPS!");
+        }
+
+
+    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {

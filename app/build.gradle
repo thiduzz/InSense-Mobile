@@ -41,5 +41,6 @@ dependencies {
     compile 'com.google.code.findbugs:jsr305:2.0.1'
     compile 'com.akexorcist:googledirectionlibrary:1.0.4'
     compile 'commons-io:commons-io:2.5'
+    compile 'com.github.petr-s:android-nmea-parser:0.5.0'
     testCompile 'junit:junit:4.12'
 }

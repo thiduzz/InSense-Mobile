@@ -52,4 +52,5 @@ public class Constants {
 
     //File paths
     public static final String RECORDED_AUDIO_FILE_PATH = "/recorded.wav";
+    public static final int GLASS_GPS_COORDINATE_RECEIVED = 3600;
 }
