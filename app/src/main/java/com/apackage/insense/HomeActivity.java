@@ -265,6 +265,8 @@ public class HomeActivity extends AppCompatActivity
         @Override
         public void onRMC(long date, long time, double latitude, double longitude, float speed, float direction) {
             Log.i("INSENSE","Leu o GPS!");
+            final DataBase db = new DataBase(getApplicationContext());
+            db.saveOrUpdateSetting(db.getActiveUser(),"CURRENT_LOCATION", new Gson().toJson(new LatLng(latitude, longitude)));
         }
 
 
