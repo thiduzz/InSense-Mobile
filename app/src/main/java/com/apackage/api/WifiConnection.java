@@ -71,15 +71,16 @@ public class WifiConnection extends AsyncTask<Void, Void, Void> {
     public Socket socket;
     private boolean connectSocket = false;
     private Handler handlerReceiverClient;
-    private int bufferSize = 255;
+    private int bufferSize = 200;
     private boolean initAudio = false;
+    private boolean initGPS = false;
     private ByteArrayOutputStream bufAudio;
     private ByteArrayOutputStream bufData;
     private Context context;
     private WifiManager wifiManager;
 
 
-    public WifiConnection(String address, int port, Handler handler, BasicNMEAHandler gpsHandler, Context context, WifiManager wifiManager) {
+    public WifiConnection(String address, int port, Handler handler, Context context, WifiManager wifiManager) {
         this.address = address;
         this.port = port;
         this.handlerReceiverClient = handler;
@@ -117,6 +118,10 @@ public class WifiConnection extends AsyncTask<Void, Void, Void> {
                 {
                     byte[] bData = new byte[bufferSize];
                     int bytes = inputStream.read(bData);
+
+                    //String readMessage = new String(bData);
+                    //Log.i("Recebendo", readMessage);
+
                     // 0 = dados gerais
                     // 1 = INI (inicio de transmissão de dados de audio)
                     // 2 = FIM (fim de transmissão de dados de audio)
@@ -124,9 +129,11 @@ public class WifiConnection extends AsyncTask<Void, Void, Void> {
                     // 4 = DIR (dados de direção)
                     switch (findTypeData(bData)){
                         case 0 : {
-                            if (initAudio == false){
-                                bufData = new ByteArrayOutputStream();
-                                bufData.write(bData);
+                            if (initAudio){
+                                bufAudio.write(bData);
+                            }else if (initGPS){
+                                initGPS = false;
+                                decodeGPS(bData);
                             }
                             break;
                         }
@@ -139,53 +146,44 @@ public class WifiConnection extends AsyncTask<Void, Void, Void> {
                         }
                         case 2 : {
                             initAudio = false;
-                            if(saveFileAudio())
-                            {
-                                byte[] audioByte = readFileAudio();
-                                if(bData != null)
-                                {
 
-                                    Log.i("INSENSE","INICIANDO INTERPRETACAO 1");
-                                    String audioEncoded = Base64.encodeBase64String(bData);
-                                    Log.i("INSENSE","INICIANDO INTERPRETACAO 2");
-                                    Speech speechService = new Speech.Builder(
-                                            AndroidHttp.newCompatibleTransport(),
-                                            new AndroidJsonFactory(),
-                                            null
-                                    ).setSpeechRequestInitializer(
-                                            new SpeechRequestInitializer(CLOUD_API_KEY))
-                                            .build();
-                                    Log.i("INSENSE","INICIANDO INTERPRETACAO 3");
-                                    RecognitionConfig recognitionConfig = new RecognitionConfig();
-                                    recognitionConfig.setLanguageCode("pt-BR");
-                                    recognitionConfig.setEncoding("LINEAR16");
-                                    recognitionConfig.setSampleRateHertz(16000);
-                                    RecognitionAudio recognitionAudio = new RecognitionAudio();
-                                    recognitionAudio.setContent(audioEncoded);
-                                    Log.i("INSENSE","INICIANDO INTERPRETACAO 4");
-                                    // Create request
-                                    RecognizeRequest request = new RecognizeRequest();
-                                    request.setConfig(recognitionConfig);
-                                    request.setAudio(recognitionAudio);
-                                    Log.i("INSENSE","INICIANDO INTERPRETACAO 5");
-                                    RecognizeResponse response = speechService.speech()
-                                            .recognize(request)
-                                            .execute();
-                                     List<SpeechRecognitionResult> result = response.getResults();
-                                    Log.i("INSENSE","INICIANDO INTERPRETACAO 6");
-                                    final String transcript = result.get(0).toPrettyString();
-                                    /**
-                                    final String transcript = result.getAlternatives().get(0)
-                                            .getTranscript();
-                                     **/
-                                    messageResponse = Message.obtain( handlerReceiverClient, Constants.GLASS_AUDIO_RECOGNIZED, transcript);
-                                }
+                            if (bufAudio.size() > 0){
+                                Log.i("INSENSE","INICIANDO INTERPRETACAO 1");
+                                String audioEncoded = Base64.encodeBase64String(bufAudio.toByteArray());
+                                Log.i("INSENSE","INICIANDO INTERPRETACAO 2");
+                                Speech speechService = new Speech.Builder(
+                                        AndroidHttp.newCompatibleTransport(),
+                                        new AndroidJsonFactory(),
+                                        null
+                                ).setSpeechRequestInitializer(
+                                        new SpeechRequestInitializer(CLOUD_API_KEY))
+                                        .build();
+                                Log.i("INSENSE","INICIANDO INTERPRETACAO 3");
+                                RecognitionConfig recognitionConfig = new RecognitionConfig();
+                                recognitionConfig.setLanguageCode("pt-BR");
+                                recognitionConfig.setEncoding("LINEAR16");
+                                recognitionConfig.setSampleRateHertz(16000);
+                                RecognitionAudio recognitionAudio = new RecognitionAudio();
+                                recognitionAudio.setContent(audioEncoded);
+                                Log.i("INSENSE","INICIANDO INTERPRETACAO 4");
+                                // Create request
+                                RecognizeRequest request = new RecognizeRequest();
+                                request.setConfig(recognitionConfig);
+                                request.setAudio(recognitionAudio);
+                                Log.i("INSENSE","INICIANDO INTERPRETACAO 5");
+                                RecognizeResponse response = speechService.speech()
+                                        .recognize(request)
+                                        .execute();
+                                List<SpeechRecognitionResult> result = response.getResults();
+                                Log.i("INSENSE","INICIANDO INTERPRETACAO 6");
+                                final String transcript = result.get(0).toPrettyString();
+                                messageResponse = Message.obtain( handlerReceiverClient, Constants.GLASS_AUDIO_RECOGNIZED, transcript);
                             }
+
                             break;
                         }
                         case 3 : {
-                            //TODO:Mudar para a string recebida pelo GPS
-                            handlerReceiverClient.obtainMessage(Constants.GLASS_GPS_COORDINATE_RECEIVED,"$GPRMC,163407.000,A,5004.7485,N,01423.8956,E,0.04,36.97,180416,,*38").sendToTarget();
+                            initGPS = true;
                             break;
                         }
                         case 4 : {
@@ -198,7 +196,7 @@ public class WifiConnection extends AsyncTask<Void, Void, Void> {
                     checkStatus();
                 }
 
-                Log.i("INSENSE", "Rodando WifiConnection");
+                //Log.i("INSENSE", "Rodando WifiConnection");
             }
             Log.i("INSENSE", "WifiConnection PAROU!");
             messageResponse = Message.obtain( handlerReceiverClient, Constants.CONNECTION_ERROR, "Socket was closed or stopped answering");
@@ -228,6 +226,16 @@ public class WifiConnection extends AsyncTask<Void, Void, Void> {
                 messageResponse = Message.obtain( handlerReceiverClient, Constants.CONNECTION_ERROR, ex.getMessage() );
             }
             return null;
+        }
+    }
+
+    protected void sendData(String data){
+        try{
+            Log.i("Enviando: ", data);
+            data = data + '\n';
+            socket.getOutputStream().write(data.getBytes());
+        }catch (IOException ex){
+            ex.printStackTrace();
         }
     }
 
@@ -280,6 +288,18 @@ public class WifiConnection extends AsyncTask<Void, Void, Void> {
         }
 
         return ret;
+    }
+
+    private void decodeGPS(byte[] dataGPS){
+        String gps = "";
+        for (int i = 0; i < 69; i++){
+            gps += (char)dataGPS[i];
+        }
+
+        handlerReceiverClient.obtainMessage(Constants.GLASS_GPS_COORDINATE_RECEIVED,gps).sendToTarget();
+
+        Log.i("INSENSE", gps);
+
     }
 
     private boolean saveFileAudio(){

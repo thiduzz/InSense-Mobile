@@ -48,7 +48,7 @@ public class Constants {
     public static final int GLASS_ERROR_CODE = 3500;
 
     public static final List<String> REGISTERED_IMACS =
-            Collections.unmodifiableList(Arrays.asList("60:01:94:41:2f:84"));
+            Collections.unmodifiableList(Arrays.asList("5c:cf:7f:37:96:18"));
 
     //File paths
     public static final String RECORDED_AUDIO_FILE_PATH = "/recorded.wav";
