@@ -51,6 +51,6 @@ public class Constants {
             Collections.unmodifiableList(Arrays.asList("5c:cf:7f:37:96:18"));
 
     //File paths
-    public static final String RECORDED_AUDIO_FILE_PATH = "/recorded.wav";
+    public static final String RECORDED_AUDIO_FILE_PATH = "/sdcard/recorded.wav";
     public static final int GLASS_GPS_COORDINATE_RECEIVED = 3600;
 }

@@ -3,6 +3,9 @@ package com.apackage.api;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
+import android.media.AudioFormat;
+import android.media.MediaCodec;
+import android.media.MediaMuxer;
 import android.media.MediaPlayer;
 import android.media.MediaRecorder;
 import android.net.wifi.WifiManager;
@@ -29,6 +32,7 @@ import com.google.api.services.speech.v1.model.RecognizeRequest;
 import com.google.api.services.speech.v1.model.RecognizeResponse;
 import com.google.api.services.speech.v1.model.SpeechRecognitionResult;
 
+
 import org.apache.commons.io.IOUtils;
 
 import java.io.BufferedInputStream;
@@ -53,6 +57,9 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketException;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+import java.nio.ShortBuffer;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
@@ -79,6 +86,9 @@ public class WifiConnection extends AsyncTask<Void, Void, Void> {
     private Context context;
     private WifiManager wifiManager;
 
+
+    public WifiConnection() {
+    }
 
     public WifiConnection(String address, int port, Handler handler, Context context, WifiManager wifiManager) {
         this.address = address;
@@ -147,37 +157,13 @@ public class WifiConnection extends AsyncTask<Void, Void, Void> {
                         case 2 : {
                             initAudio = false;
 
+                            //saveFileAudio();
+
                             if (bufAudio.size() > 0){
-                                Log.i("INSENSE","INICIANDO INTERPRETACAO 1");
-                                String audioEncoded = Base64.encodeBase64String(bufAudio.toByteArray());
-                                Log.i("INSENSE","INICIANDO INTERPRETACAO 2");
-                                Speech speechService = new Speech.Builder(
-                                        AndroidHttp.newCompatibleTransport(),
-                                        new AndroidJsonFactory(),
-                                        null
-                                ).setSpeechRequestInitializer(
-                                        new SpeechRequestInitializer(CLOUD_API_KEY))
-                                        .build();
-                                Log.i("INSENSE","INICIANDO INTERPRETACAO 3");
-                                RecognitionConfig recognitionConfig = new RecognitionConfig();
-                                recognitionConfig.setLanguageCode("pt-BR");
-                                recognitionConfig.setEncoding("LINEAR16");
-                                recognitionConfig.setSampleRateHertz(16000);
-                                RecognitionAudio recognitionAudio = new RecognitionAudio();
-                                recognitionAudio.setContent(audioEncoded);
-                                Log.i("INSENSE","INICIANDO INTERPRETACAO 4");
-                                // Create request
-                                RecognizeRequest request = new RecognizeRequest();
-                                request.setConfig(recognitionConfig);
-                                request.setAudio(recognitionAudio);
-                                Log.i("INSENSE","INICIANDO INTERPRETACAO 5");
-                                RecognizeResponse response = speechService.speech()
-                                        .recognize(request)
-                                        .execute();
-                                List<SpeechRecognitionResult> result = response.getResults();
-                                Log.i("INSENSE","INICIANDO INTERPRETACAO 6");
-                                final String transcript = result.get(0).toPrettyString();
-                                messageResponse = Message.obtain( handlerReceiverClient, Constants.GLASS_AUDIO_RECOGNIZED, transcript);
+                                byte[] b = bufAudio.toByteArray();
+                                //b[34] = 16;
+
+                                recognitionAudio(b);
                             }
 
                             break;
@@ -226,6 +212,109 @@ public class WifiConnection extends AsyncTask<Void, Void, Void> {
                 messageResponse = Message.obtain( handlerReceiverClient, Constants.CONNECTION_ERROR, ex.getMessage() );
             }
             return null;
+        }
+    }
+
+    public void recognitionAudio(byte[] b){
+        try {
+            byte[] b16 = new byte[b.length + b.length-44];
+
+            int Subchunk2Size = b.length-44 + b.length-44;
+            byte[] Subchunk2SizeByte = new byte[4];
+            Subchunk2SizeByte[0] = (byte) (Subchunk2Size >> 0);
+            Subchunk2SizeByte[1] = (byte) (Subchunk2Size >> 8);
+            Subchunk2SizeByte[2] = (byte) (Subchunk2Size >> 16);
+            Subchunk2SizeByte[3] = (byte) (Subchunk2Size >> 24);
+
+            int ChunkSize = Subchunk2Size + 36;
+            byte[] ChunkSizeByte = new byte[4];
+            ChunkSizeByte[0] = (byte) (ChunkSize >> 0);
+            ChunkSizeByte[1] = (byte) (ChunkSize >> 8);
+            ChunkSizeByte[2] = (byte) (ChunkSize >> 16);
+            ChunkSizeByte[3] = (byte) (ChunkSize >> 24);
+
+            // ChunkSize        36 + SubChunk2Size, or more precisely: 4 + (8 + SubChunk1Size) + (8 + SubChunk2Size)
+            b16[4] = ChunkSizeByte[0];
+            b16[5] = ChunkSizeByte[1];
+            b16[6] = ChunkSizeByte[2];
+            b16[7] = ChunkSizeByte[3];
+
+            // valor 32000 ByteRate (== SampleRate * NumChannels * BitsPerSample/8)
+            b16[28] = 0;
+            b16[29] = 125;
+            b16[30] = 0;
+            b16[31] = 0;
+
+            // valor 1*16/8 = 2 (BlockAlign == NumChannels * BitsPerSample/8)
+            b16[32] = 2;
+            b16[33] = 0;
+
+            // BitsPerSample    8 bits = 8, 16 bits = 16, etc.
+            b16[34] = 16;
+            b16[35] = 0;
+
+            // Subchunk2Size    == NumSamples * NumChannels * BitsPerSample/8
+            b16[40] = Subchunk2SizeByte[0];
+            b16[41] = Subchunk2SizeByte[1];
+            b16[42] = Subchunk2SizeByte[2];
+            b16[43] = Subchunk2SizeByte[3];
+
+            int index16 = 1;
+            for (int i = 0; i < b.length; i++){
+                if ((i < 4) || (i >= 8 && i < 28) || (i >= 36 && i < 40)){
+                    b16[i] = b[i];
+                }else if (i > 43){
+                    int bit8 = b[i];
+                    int bit16;
+
+                    if (bit8 <= 0){
+                        bit16 = 128 + bit8;
+                    }else{
+                        bit16 = bit8 - 128;
+                    }
+                    b16[i+index16-1] = 0;
+                    b16[i+index16] = (byte)bit16;
+
+                    index16++;
+                }
+            }
+
+
+            Log.i("INSENSE", "INICIANDO INTERPRETACAO 1");
+            String audioEncoded = Base64.encodeBase64String(b16);
+            Log.i("INSENSE", "INICIANDO INTERPRETACAO 2");
+            Speech speechService = new Speech.Builder(
+                    AndroidHttp.newCompatibleTransport(),
+                    new AndroidJsonFactory(),
+                    null
+            ).setSpeechRequestInitializer(
+                    new SpeechRequestInitializer(CLOUD_API_KEY))
+                    .build();
+            Log.i("INSENSE", "INICIANDO INTERPRETACAO 3");
+            RecognitionConfig recognitionConfig = new RecognitionConfig();
+            recognitionConfig.setLanguageCode("pt-BR");
+            recognitionConfig.setEncoding("LINEAR16");
+            recognitionConfig.setSampleRateHertz(16000);
+            RecognitionAudio recognitionAudio = new RecognitionAudio();
+            recognitionAudio.setContent(audioEncoded);
+            Log.i("INSENSE", "INICIANDO INTERPRETACAO 4");
+            // Create request
+            RecognizeRequest request = new RecognizeRequest();
+            request.setConfig(recognitionConfig);
+            request.setAudio(recognitionAudio);
+            Log.i("INSENSE", "INICIANDO INTERPRETACAO 5");
+            RecognizeResponse response = speechService.speech().recognize(request).execute();
+            List<SpeechRecognitionResult> result = response.getResults();
+            Log.i("INSENSE", "INICIANDO INTERPRETACAO 6");
+            if (result != null && result.size() > 0) {
+                final String transcript = result.get(0).toPrettyString();
+                messageResponse = Message.obtain(handlerReceiverClient, Constants.GLASS_AUDIO_RECOGNIZED, transcript);
+            } else {
+                Log.i("INSENSE", "NÃO RECONHECEU NADA");
+            }
+        }catch (IOException e){
+            e.printStackTrace();
+            messageResponse = Message.obtain( handlerReceiverClient, Constants.GLASS_ERROR_CODE, e.getMessage() );
         }
     }
 
@@ -291,8 +380,26 @@ public class WifiConnection extends AsyncTask<Void, Void, Void> {
     }
 
     private void decodeGPS(byte[] dataGPS){
-        String gps = "";
-        for (int i = 0; i < 69; i++){
+        String dataGPSS = "";
+
+        int index = 0;
+        char gpsC = (char)dataGPS[index];
+        while (gpsC != '\n'){
+            dataGPSS += gpsC;
+            index++;
+            gpsC = (char)dataGPS[index];
+        }
+
+        String gps = dataGPSS.substring(0, index-3);
+        String dir = dataGPSS.substring(index-3, index);
+        Log.i("INSENSE", gps);
+        Log.i("INSENSE", dir);
+
+        handlerReceiverClient.obtainMessage(Constants.GLASS_GPS_COORDINATE_RECEIVED,gps).sendToTarget();
+
+
+        /*
+        for (int i = 0; i < 70; i++){
             gps += (char)dataGPS[i];
         }
 
@@ -300,17 +407,24 @@ public class WifiConnection extends AsyncTask<Void, Void, Void> {
 
         Log.i("INSENSE", gps);
 
+        String dir = "";
+        for (int j=70; j < 73; j++){
+            dir += (char) dataGPS[j];
+        }
+
+        Log.i("INSENSE", dir);
+        */
     }
 
     private boolean saveFileAudio(){
         try{
             if (bufAudio != null) {
-                File file = new File(context.getFilesDir(), Constants.RECORDED_AUDIO_FILE_PATH);
+                File file = new File(Constants.RECORDED_AUDIO_FILE_PATH);
                 if(file.exists() && file.canWrite())
                 {
                     file.delete();
                 }
-                FileOutputStream fos = new FileOutputStream(new File(context.getFilesDir(), Constants.RECORDED_AUDIO_FILE_PATH),false);
+                FileOutputStream fos = new FileOutputStream(new File(Constants.RECORDED_AUDIO_FILE_PATH),false);
                 //FileOutputStream fos = new FileOutputStream(new File("/sdcard/teste.txt"));
                 bufAudio.writeTo(fos);
                 bufAudio.flush();
@@ -319,6 +433,7 @@ public class WifiConnection extends AsyncTask<Void, Void, Void> {
                 fos.close();
                 Log.i("INSENSE","AUDIO SALVO!");
                 //handlerReceiverClient.obtainMessage(Constants.GLASS_AUDIO_SAVED,null).sendToTarget();
+
                 return  true;
             }else{
                 return false;

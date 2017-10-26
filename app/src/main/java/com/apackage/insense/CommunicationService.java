@@ -25,6 +25,10 @@ import com.apackage.utils.Constants;
 import com.github.petr_s.nmea.basic.BasicNMEAHandler;
 
 import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
@@ -135,6 +139,24 @@ public class CommunicationService extends Service implements ServerConnectionLis
         };
         //a cada 30 seg. roda o check
         timer.schedule(timerTask, 0, 30000);
+    }
+
+    public void startRecognition(){
+        try {
+            File f = new File("/sdcard/tmp1.wav");
+            FileInputStream fis = new FileInputStream(f);
+            byte[] b = new byte[(int)f.length()];
+            fis.read(b);
+
+            if (wifi == null){
+                startWirelessConnection("192.168.43.168", Constants.CONNECTION_PORT);
+            }
+
+            wifi.recognitionAudio(b);
+        } catch (Exception e) {
+            e.printStackTrace();
+            Log.e("INSENSE", "FAILED TO RECOGNITION");
+        }
     }
 
     public void sendDeviceMessage(int code, Object what)

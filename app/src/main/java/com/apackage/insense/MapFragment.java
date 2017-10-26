@@ -143,7 +143,7 @@ public class MapFragment extends Fragment implements PlaceAutoCompleteInterface,
         Direction currentDirection = new Gson().fromJson(db.getSetting(db.getActiveUser(),"CURRENT_DIRECTION"), Direction.class);
         if(currentLoc == null)
         {
-            db.saveOrUpdateSetting(db.getActiveUser(),"CURRENT_LOCATION", new Gson().toJson(new LatLng(52.473683, 13.423557)));
+            db.saveOrUpdateSetting(db.getActiveUser(),"CURRENT_LOCATION", new Gson().toJson(new LatLng(-25.4089779, -49.2926419)));
             currentLoc = new Gson().fromJson(db.getSetting(db.getActiveUser(),"CURRENT_LOCATION"), LatLng.class);
         }
         if(currentDirection == null)
@@ -296,6 +296,7 @@ public class MapFragment extends Fragment implements PlaceAutoCompleteInterface,
     public void onMapReady(GoogleMap googleMap) {
         try {
             mMap = googleMap;
+            mMap.setMapType(GoogleMap.MAP_TYPE_SATELLITE);
             boolean success = mMap.setMapStyle(
                     MapStyleOptions.loadRawResourceStyle(
                             getActivity().getApplicationContext(), R.raw.map_style));
@@ -449,7 +450,7 @@ public class MapFragment extends Fragment implements PlaceAutoCompleteInterface,
         //TODO: executar instrucao do step inicial ( index 0)
     }
 
-    private boolean setUserLocation()
+    public boolean setUserLocation()
     {
         LatLng currentLoc = new Gson().fromJson(db.getSetting(db.getActiveUser(),"CURRENT_LOCATION"), LatLng.class);
         if(currentLoc != null && mMap != null)
@@ -467,7 +468,7 @@ public class MapFragment extends Fragment implements PlaceAutoCompleteInterface,
             markerSetup.icon(BitmapDescriptorFactory.fromBitmap(smallMarker));
             userMarker = mMap.addMarker(markerSetup);
             mMap.moveCamera(CameraUpdateFactory.newLatLng(currentLoc));//Moves the camera to users current longitude and latitude
-            mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(currentLoc,(float) 14.6));//Animates camera and zooms to preferred state on the user's current location.
+            mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(currentLoc,(float) 20));//Animates camera and zooms to preferred state on the user's current location.
             checkForSteps(currentLoc);
             return true;
         }
@@ -494,6 +495,9 @@ public class MapFragment extends Fragment implements PlaceAutoCompleteInterface,
                         {
                             Toast.makeText(getActivity().getApplicationContext(), step.getHtmlInstruction(), Toast.LENGTH_LONG).show();
                         }
+                        //turn-sharp-left uturn-right turn-slight-right merge roundabout-left roundabout-right uturn-left turn-slight-left turn-left ramp-right turn-right fork-right straight fork-left ferry-train turn-sharp-right ramp-left ferry
+
+
                         Log.i("INSENSE", "Entrou no raio: momento de disparar o audio!");
                     }
                 }
