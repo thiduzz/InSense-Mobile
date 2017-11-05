@@ -143,7 +143,7 @@ public class CommunicationService extends Service implements ServerConnectionLis
 
     public void startRecognition(){
         try {
-            File f = new File("/sdcard/tmp1.wav");
+            File f = new File("/sdcard/TMP1_zaneti.WAV");
             FileInputStream fis = new FileInputStream(f);
             byte[] b = new byte[(int)f.length()];
             fis.read(b);
@@ -162,6 +162,10 @@ public class CommunicationService extends Service implements ServerConnectionLis
     public void sendDeviceMessage(int code, Object what)
     {
 
+    }
+
+    public void sendData(String data){
+        wifi.sendData(data);
     }
 
     @Override

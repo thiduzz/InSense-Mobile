@@ -120,7 +120,7 @@ public class WifiConnection extends AsyncTask<Void, Void, Void> {
             {
                 handlerReceiverClient.obtainMessage(Constants.GLASS_STARTED,null).sendToTarget();
             }
-            handlerReceiverClient.obtainMessage(Constants.GLASS_AUDIO_RECOGNIZED, "Hermannplatz, Berlin").sendToTarget();
+            //handlerReceiverClient.obtainMessage(Constants.GLASS_AUDIO_RECOGNIZED, "Hermannplatz, Berlin").sendToTarget();
             while(!isCancelled() && socket.isConnected() && !socket.isClosed()){
                 inputStream = socket.getInputStream();
                 checkStatus();
@@ -148,7 +148,7 @@ public class WifiConnection extends AsyncTask<Void, Void, Void> {
                             break;
                         }
                         case 1 : {
-                            handlerReceiverClient.obtainMessage(Constants.GLASS_AUDIO_RECOGNIZED, "Wiener Strasse 35, Berlin").sendToTarget();
+                            //handlerReceiverClient.obtainMessage(Constants.GLASS_AUDIO_RECOGNIZED, "Wiener Strasse 35, Berlin").sendToTarget();
                             handlerReceiverClient.obtainMessage(Constants.GLASS_AUDIO_RECORDING,null).sendToTarget();
                             initAudio = true;
                             bufAudio = new ByteArrayOutputStream();
@@ -161,7 +161,6 @@ public class WifiConnection extends AsyncTask<Void, Void, Void> {
 
                             if (bufAudio.size() > 0){
                                 byte[] b = bufAudio.toByteArray();
-                                //b[34] = 16;
 
                                 recognitionAudio(b);
                             }
@@ -279,6 +278,8 @@ public class WifiConnection extends AsyncTask<Void, Void, Void> {
                 }
             }
 
+            sendData("AUD:112");
+
 
             Log.i("INSENSE", "INICIANDO INTERPRETACAO 1");
             String audioEncoded = Base64.encodeBase64String(b16);
@@ -308,9 +309,11 @@ public class WifiConnection extends AsyncTask<Void, Void, Void> {
             Log.i("INSENSE", "INICIANDO INTERPRETACAO 6");
             if (result != null && result.size() > 0) {
                 final String transcript = result.get(0).toPrettyString();
-                messageResponse = Message.obtain(handlerReceiverClient, Constants.GLASS_AUDIO_RECOGNIZED, transcript);
+                //messageResponse = Message.obtain(handlerReceiverClient, Constants.GLASS_AUDIO_RECOGNIZED, transcript);
+                handlerReceiverClient.obtainMessage(Constants.GLASS_AUDIO_RECOGNIZED,transcript).sendToTarget();
             } else {
                 Log.i("INSENSE", "NÃO RECONHECEU NADA");
+                sendData("AUD:114");
             }
         }catch (IOException e){
             e.printStackTrace();
@@ -318,7 +321,7 @@ public class WifiConnection extends AsyncTask<Void, Void, Void> {
         }
     }
 
-    protected void sendData(String data){
+    public void sendData(String data){
         try{
             Log.i("Enviando: ", data);
             data = data + '\n';
@@ -392,10 +395,14 @@ public class WifiConnection extends AsyncTask<Void, Void, Void> {
 
         String gps = dataGPSS.substring(0, index-3);
         String dir = dataGPSS.substring(index-3, index);
-        Log.i("INSENSE", gps);
-        Log.i("INSENSE", dir);
+        //Log.i("INSENSE", gps);
+        //Log.i("INSENSE", dir);
 
-        handlerReceiverClient.obtainMessage(Constants.GLASS_GPS_COORDINATE_RECEIVED,gps).sendToTarget();
+        ArrayList<String> gpsDir = new ArrayList<>();
+        gpsDir.add(gps);
+        gpsDir.add(dir);
+
+        handlerReceiverClient.obtainMessage(Constants.GLASS_GPS_COORDINATE_RECEIVED,gpsDir).sendToTarget();
 
 
         /*

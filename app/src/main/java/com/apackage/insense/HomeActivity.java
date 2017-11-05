@@ -6,8 +6,12 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.content.SharedPreferences;
+import android.graphics.Bitmap;
+import android.graphics.Color;
+import android.graphics.drawable.BitmapDrawable;
 import android.location.Address;
 import android.location.Geocoder;
+import android.location.Location;
 import android.net.wifi.WifiManager;
 import android.os.Bundle;
 import android.os.Handler;
@@ -41,6 +45,8 @@ import com.akexorcist.googledirection.constant.TransitMode;
 import com.akexorcist.googledirection.constant.TransportMode;
 import com.akexorcist.googledirection.constant.Unit;
 import com.akexorcist.googledirection.model.Direction;
+import com.akexorcist.googledirection.model.Step;
+import com.akexorcist.googledirection.util.DirectionConverter;
 import com.apackage.api.HotspotConnection;
 import com.apackage.api.ServerConnection;
 import com.apackage.api.ServerConnectionListener;
@@ -52,7 +58,13 @@ import com.apackage.utils.OnActivityFragmentsInteractionListener;
 import com.apackage.utils.RecognitionAlternatives;
 import com.github.petr_s.nmea.basic.BasicNMEAHandler;
 import com.github.petr_s.nmea.basic.BasicNMEAParser;
+import com.google.android.gms.maps.CameraUpdateFactory;
+import com.google.android.gms.maps.model.BitmapDescriptorFactory;
+import com.google.android.gms.maps.model.Circle;
+import com.google.android.gms.maps.model.CircleOptions;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.android.gms.maps.model.PolylineOptions;
 import com.google.gson.Gson;
 
 import org.json.JSONObject;
@@ -65,6 +77,7 @@ import java.io.InputStreamReader;
 import java.io.ObjectOutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
@@ -78,6 +91,11 @@ public class HomeActivity extends AppCompatActivity
     CommunicationService myService;
     DevicesFragment fragDev;
     Menu toolbarMenu;
+    MapFragment mapFragment;
+    private ArrayList<Circle> stepsBounds;
+    private int stepsBoundsIndex;
+
+
     public Handler handlerReceiverClient = new Handler(new Handler.Callback() {
         @Override
         public boolean handleMessage(Message message) {
@@ -173,22 +191,25 @@ public class HomeActivity extends AppCompatActivity
                                  ]
                                }
                          */
+
+                        Log.i("INSENSE", "AUDIO RECOGNIZED IS: " + (String) message.obj);
                         Gson gson = new Gson();
                         RecognitionAlternatives recognitionAlternatives = gson.fromJson((String) message.obj, RecognitionAlternatives.class);
 
                         Collections.sort(recognitionAlternatives.getAlternatives(), Alternatives.orderAlternatives);
 
                         if (recognitionAlternatives.getAlternatives().size() > 0){
+                            myService.sendData("AUD:113"); // audio processado, estamos buscando o endereço, aguarde por favor.
+
                             String transcript = recognitionAlternatives.getAlternatives().get(0).getTranscriptFilter();
 
-                            Log.i("INSENSE", "AUDIO RECOGNIZED IS: " + (String) message.obj);
-
-                            Geocoder geo = new Geocoder(getApplicationContext(), Locale.US);
-                            List<Address> results = geo.getFromLocationName(transcript, 3);
+                            Geocoder geo = new Geocoder(getApplicationContext(), Locale.getDefault());
+                            List<Address> results = geo.getFromLocationName(transcript, 5);
 
                             if (results.size() > 0) {
+                                LatLng currentLoc = new Gson().fromJson(db.getSetting(db.getActiveUser(),"CURRENT_LOCATION"), LatLng.class);
                                 GoogleDirection.withServerKey("AIzaSyCmWiuCgBSJKWLxRWoNeaJiP4VKRnbexQ8")
-                                        .from(new LatLng(52.473683, 13.423557))
+                                        .from(currentLoc)
                                         .to(new LatLng(results.get(0).getLatitude(), results.get(0).getLongitude())) // exception results[0]
                                         .unit(Unit.METRIC)
                                         .transitMode(TransitMode.TRAIN)
@@ -203,9 +224,14 @@ public class HomeActivity extends AppCompatActivity
                                                     // Do something
                                                     Log.i("INSENSE", "SUCCESS TO GET DIRECTIONS");
                                                     db.saveOrUpdateSetting(db.getActiveUser(), "CURRENT_DIRECTION", new Gson().toJson(direction));
-                                                    MapFragment mapFragment = (MapFragment) getSupportFragmentManager().findFragmentByTag(Constants.FRAGMENT_MAP);
-                                                    if (mapFragment != null && mapFragment.isVisible()) {
-                                                        mapFragment.refreshDirections();
+
+                                                    if (mapFragment == null) {
+                                                        mapFragment = (MapFragment) getSupportFragmentManager().findFragmentByTag(Constants.FRAGMENT_MAP);
+
+                                                    }
+                                                    if (mapFragment.isVisible()){
+                                                        myService.sendData("AUD:115"); //
+                                                        mapFragment.showDirections();
                                                     }
                                                 }
                                             }
@@ -213,6 +239,7 @@ public class HomeActivity extends AppCompatActivity
                                             @Override
                                             public void onDirectionFailure(Throwable t) {
                                                 Log.i("INSENSE", "FAILED TO GET DIRECTIONS");
+                                                myService.sendData("AUD:114");
                                                 myService.sendDeviceMessage(Constants.GLASS_ERROR_CODE, t.getMessage());
                                             }
                                         });
@@ -221,19 +248,24 @@ public class HomeActivity extends AppCompatActivity
                             }
                         }
                     } catch (IOException e) {
-                        Log.i("INSENSE","FAILED TO GET DIRECTIONS");
+                        Log.i("INSENSE","FAILED TO GET DIRECTIONS: " + e.getMessage());
                         myService.sendDeviceMessage(Constants.GLASS_ERROR_CODE, e.getMessage());
                         return false;
                     }
                     break;
 
                 case Constants.GLASS_GPS_COORDINATE_RECEIVED:
-                    BasicNMEAParser parser = new BasicNMEAParser(gpsHandler);
-                    String gps = (String) message.obj;
-                    gps = gps.trim(); // puta q o pariu
-                    parser.parse(gps);
-                    //parser.parse("$GPRMC,152140.000,A,2524.5277,S,04917.5564,W,0.00,5.47,241017,,,A*6A");
-                    Log.i("INSENSE - Parse", gps);
+                    ArrayList<String> gpsDir = (ArrayList<String>) message.obj;
+                    String gps = gpsDir.get(0).trim();
+                    String dir = gpsDir.get(1).trim();
+                    if (mapFragment == null) {
+                        mapFragment = (MapFragment) getSupportFragmentManager().findFragmentByTag(Constants.FRAGMENT_MAP);
+
+                    }
+                    if (mapFragment.isVisible()){
+                        mapFragment.parseGPSDir(gps, dir);
+                    }
+
                     break;
             }
             return false;
@@ -255,60 +287,7 @@ public class HomeActivity extends AppCompatActivity
              **/
         }
     });
-    BasicNMEAHandler gpsHandler = new BasicNMEAHandler() {
-        @Override
-        public void onStart() {
-            Log.i("INSENSE","onUnrecognized");
-        }
-        @Override
-        public void onGGA(long time, double latitude, double longitude, float altitude, FixQuality quality, int satellites, float hdop) {
-            Log.i("INSENSE","onGGA");
-        }
 
-        @Override
-        public void onGSV(int satellites, int index, int prn, float elevation, float azimuth, int snr) {
-            Log.i("INSENSE","onGSV");
-        }
-
-        @Override
-        public void onGSA(FixType type, Set<Integer> prns, float pdop, float hdop, float vdop) {
-            Log.i("INSENSE","onGSA");
-        }
-
-        @Override
-        public void onUnrecognized(String sentence) {
-            Log.i("INSENSE","onUnrecognized: " + sentence);
-        }
-
-        @Override
-        public void onBadChecksum(int expected, int actual) {
-            Log.i("INSENSE","onBadChecksum");
-        }
-
-        @Override
-        public void onException(Exception e) {
-            Log.i("INSENSE","onException");
-        }
-
-        @Override
-        public void onFinished() {
-
-        }
-
-        @Override
-        public void onRMC(long date, long time, double latitude, double longitude, float speed, float direction) {
-            Log.i("INSENSE","Leu o GPS!");
-            final DataBase db = new DataBase(getApplicationContext());
-            db.saveOrUpdateSetting(db.getActiveUser(),"CURRENT_LOCATION", new Gson().toJson(new LatLng(latitude, longitude)));
-            MapFragment mapFragment = (MapFragment) getSupportFragmentManager().findFragmentByTag(Constants.FRAGMENT_MAP);
-            if(mapFragment != null && mapFragment.isVisible())
-            {
-                mapFragment.setUserLocation();
-            }
-        }
-
-
-    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -359,10 +338,16 @@ public class HomeActivity extends AppCompatActivity
             Fragment mFragment = getFragmentManager().findFragmentById(R.id.main_layout);
             if(mFragment == null)
             {
-                HomeFragment homeFragment = new HomeFragment();
+                /*HomeFragment homeFragment = new HomeFragment();
                 FragmentManager manager = getSupportFragmentManager();
                 manager.beginTransaction().replace(R.id.main_layout, homeFragment, homeFragment.getTag()).commit();
-                navigationView.setCheckedItem(R.id.nav_home);
+                navigationView.setCheckedItem(R.id.nav_home);*/
+
+                mapFragment = new MapFragment();
+                FragmentManager manager = getSupportFragmentManager();
+                manager.beginTransaction().replace(R.id.main_layout, mapFragment, mapFragment.getTag()).commit();
+                navigationView.setCheckedItem(R.id.nav_map);
+
             }
         }else{
             Toast.makeText(getApplicationContext(), "Problema encontrado ao buscar usuario corrente", Toast.LENGTH_LONG).show();
@@ -433,7 +418,7 @@ public class HomeActivity extends AppCompatActivity
         } else if (id == R.id.nav_help) {
 
         } else if (id == R.id.nav_map) {
-            MapFragment mapFragment = new MapFragment();
+            //MapFragment mapFragment = new MapFragment();
             FragmentManager manager = getSupportFragmentManager();
             manager.beginTransaction().replace(R.id.main_layout, mapFragment, Constants.FRAGMENT_MAP).commit();
 
@@ -504,4 +489,17 @@ public class HomeActivity extends AppCompatActivity
     public void actionRecognition(){
         myService.startRecognition();
     }
+
+    public void sendDataWifi(String data){
+        try{
+            Log.i("Enviando: ", data);
+            myService.sendData(data);
+        }catch (Exception ex){
+            ex.printStackTrace();
+        }
+    }
+
+
+
+
 }

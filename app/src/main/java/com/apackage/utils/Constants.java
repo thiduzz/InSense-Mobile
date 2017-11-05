@@ -53,4 +53,9 @@ public class Constants {
     //File paths
     public static final String RECORDED_AUDIO_FILE_PATH = "/sdcard/recorded.wav";
     public static final int GLASS_GPS_COORDINATE_RECEIVED = 3600;
+
+    //direction range
+    public static final int RANGE_DIRECTION = 15;
+    public static final int AMOUNT_STEP_DIRECTION = 3;
+    public static final int DISTANCE_LIMIT_STEP = 3;
 }

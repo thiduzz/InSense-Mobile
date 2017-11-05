@@ -88,7 +88,8 @@
         <RelativeLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_below="@id/connectionDetailsContainer">
+            android:layout_below="@id/connectionDetailsContainer"
+            android:id="@+id/relativeLayout">
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -127,6 +128,16 @@
                 </RelativeLayout>
             </LinearLayout>
         </RelativeLayout>
+
+        <Button
+            android:id="@+id/btnDesconectar"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentStart="true"
+            android:layout_below="@+id/relativeLayout"
+            android:layout_marginStart="19dp"
+            android:layout_marginTop="41dp"
+            android:text="Desconectar" />
         <!--
         <ListView
             android:id="@+id/networkListView"
